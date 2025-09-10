@@ -1,0 +1,36 @@
+{{- if .Values.rbac.enable }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  name: resource-broker-manager-role
+rules:
+- apiGroups:
+  - broker.platform-mesh.io
+  resources:
+  - acceptapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.platform-mesh.io
+  resources:
+  - acceptapis/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - broker.platform-mesh.io
+  resources:
+  - acceptapis/status
+  verbs:
+  - get
+  - patch
+  - update
+{{- end -}}
