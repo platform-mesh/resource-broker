@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/v1alpha1"
-	"github.com/platform-mesh/resource-broker/internal/controller"
+	"github.com/platform-mesh/resource-broker/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
