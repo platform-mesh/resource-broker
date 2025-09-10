@@ -1,8 +1,6 @@
 # resource-broker
-// TODO(user): Add simple overview of use/purpose
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+Synchronising, translating and lifecycling resources between clusters
 
 ## Getting Started
 
