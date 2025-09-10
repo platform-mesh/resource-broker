@@ -7,4 +7,14 @@ layout:
 - go.kubebuilder.io/v4
 projectName: resource-broker
 repo: github.com/platform-mesh/resource-broker
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: platform-mesh.io
+  group: broker
+  kind: AcceptAPI
+  path: github.com/platform-mesh/resource-broker/api/v1alpha1
+  version: v1alpha1
 version: "3"
