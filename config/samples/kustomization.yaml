@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- broker_v1alpha1_acceptapi.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

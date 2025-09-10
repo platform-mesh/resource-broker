@@ -1,0 +1,9 @@
+apiVersion: broker.platform-mesh.io/v1alpha1
+kind: AcceptAPI
+metadata:
+  labels:
+    app.kubernetes.io/name: resource-broker
+    app.kubernetes.io/managed-by: kustomize
+  name: acceptapi-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,33 @@
+# This rule is not used by the project resource-broker itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the broker.platform-mesh.io.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: resource-broker
+    app.kubernetes.io/managed-by: kustomize
+  name: acceptapi-editor-role
+rules:
+- apiGroups:
+  - broker.platform-mesh.io
+  resources:
+  - acceptapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.platform-mesh.io
+  resources:
+  - acceptapis/status
+  verbs:
+  - get
