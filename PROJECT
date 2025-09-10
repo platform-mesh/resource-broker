@@ -5,6 +5,8 @@
 domain: platform-mesh.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: resource-broker
 repo: github.com/platform-mesh/resource-broker
 resources:
