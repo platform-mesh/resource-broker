@@ -5,6 +5,7 @@
 domain: platform-mesh.io
 layout:
 - go.kubebuilder.io/v4
+multigroup: true
 plugins:
   helm.kubebuilder.io/v1-alpha: {}
 projectName: resource-broker
@@ -17,6 +18,6 @@ resources:
   domain: platform-mesh.io
   group: broker
   kind: AcceptAPI
-  path: github.com/platform-mesh/resource-broker/api/v1alpha1
+  path: github.com/platform-mesh/resource-broker/api/broker/v1alpha1
   version: v1alpha1
 version: "3"

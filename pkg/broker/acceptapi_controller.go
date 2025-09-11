@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package broker
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 	mctrl "sigs.k8s.io/multicluster-runtime"
 	mcbuilder "sigs.k8s.io/multicluster-runtime/pkg/builder"
 
-	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/v1alpha1"
+	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
 
 // AcceptAPIReconciler reconciles a AcceptAPI object.

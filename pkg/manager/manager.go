@@ -43,8 +43,8 @@ import (
 	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 	"sigs.k8s.io/multicluster-runtime/providers/multi"
 
-	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/v1alpha1"
-	"github.com/platform-mesh/resource-broker/pkg/controller"
+	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
+	"github.com/platform-mesh/resource-broker/pkg/broker"
 
 	//nolint:gci
 	//+kubebuilder:scaffold:imports
@@ -227,7 +227,7 @@ func Start(ctx context.Context, local *rest.Config, source, target Starter) erro
 
 	multi.SetManager(mgr)
 
-	if err = (&controller.AcceptAPIReconciler{}).SetupWithManager(mgr); err != nil {
+	if err = (&broker.AcceptAPIReconciler{}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder

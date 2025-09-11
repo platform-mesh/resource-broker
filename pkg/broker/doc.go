@@ -15,5 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controller contains the controllers managing resources.
-package controller
+// Package broker contains the controllers, reconcilers and utility
+// functions used to manage resources from the broker API group.
+package broker
