@@ -25,6 +25,8 @@ import (
 	"os"
 	"strings"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	mctrl "sigs.k8s.io/multicluster-runtime"
 	"sigs.k8s.io/multicluster-runtime/providers/file"
 
@@ -54,6 +56,11 @@ func main() {
 }
 
 func doMain(ctx context.Context) error {
+	local, err := ctrl.GetConfig()
+	if err != nil {
+		return err
+	}
+
 	source, err := file.New(file.Options{
 		KubeconfigFiles: strings.Split(*fSourceKubeconfig, ","),
 	})
@@ -70,6 +77,7 @@ func doMain(ctx context.Context) error {
 
 	return manager.Start(
 		ctx,
+		local,
 		NewWrappedProvider(source, source.Run),
 		NewWrappedProvider(target, target.Run),
 	)
