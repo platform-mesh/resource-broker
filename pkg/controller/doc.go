@@ -14,19 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// The main package running the resource-broker.
-package main
-
-import (
-	"fmt"
-	"os"
-
-	"github.com/platform-mesh/resource-broker/pkg/manager"
-)
-
-func main() {
-	if err := manager.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "problem running manager: %v\n", err)
-		os.Exit(1)
-	}
-}
+// Package controller contains the controllers managing resources.
+package controller
