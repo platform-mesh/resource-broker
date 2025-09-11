@@ -15,7 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+// Package wrapprovider provides a way to wrap a multicluster.Provider
+// with a start function to satisfy the manager.Starter interface.
+// It is a workaround until mcr has a better way to lifecycle providers.
+package wrapprovider
 
 import (
 	"context"
@@ -26,20 +29,27 @@ import (
 	"github.com/platform-mesh/resource-broker/pkg/manager"
 )
 
-// wrapperProvider is a workaround until mcr has a better way to
+// WrapperProvider is a workaround until mcr has a better way to
 // lifecycle providers.
-type wrapperProvider struct {
+type WrapperProvider struct {
 	multicluster.Provider
 	start func(context.Context, mctrl.Manager) error
 }
 
-func NewWrappedProvider(p multicluster.Provider, start func(context.Context, mctrl.Manager) error) manager.Starter {
-	return &wrapperProvider{
+// Wrap wraps a multicluster.Provider with a start function to satisfy
+// the manager.Starter interface.
+func Wrap(p multicluster.Provider, start func(context.Context, mctrl.Manager) error) manager.Starter {
+	return &WrapperProvider{
 		Provider: p,
 		start:    start,
 	}
 }
 
-func (w *wrapperProvider) Start(ctx context.Context, mgr mctrl.Manager) error {
+// Start starts the wrapped provider.
+func (w *WrapperProvider) Start(ctx context.Context, mgr mctrl.Manager) error {
+	if w.start == nil {
+		<-ctx.Done()
+		return ctx.Err()
+	}
 	return w.start(ctx, mgr)
 }

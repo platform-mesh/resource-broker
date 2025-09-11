@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/multicluster-runtime/providers/file"
 
 	"github.com/platform-mesh/resource-broker/pkg/manager"
+	"github.com/platform-mesh/resource-broker/pkg/wrapprovider"
 )
 
 var (
@@ -83,8 +84,8 @@ func doMain(ctx context.Context) error {
 	return manager.Start(
 		ctx,
 		local,
-		NewWrappedProvider(source, source.Run),
-		NewWrappedProvider(target, target.Run),
+		wrapprovider.Wrap(source, source.Run),
+		wrapprovider.Wrap(target, target.Run),
 		schema.GroupVersionKind{
 			Group:   *fGroup,
 			Version: *fVersion,
