@@ -23,7 +23,7 @@ SHELL = /usr/bin/env bash -o pipefail
 all: build
 
 .PHONY: check
-check: manifests generate lint-fix test test-e2e ## Run linters and tests.
+check: codegen lint-fix test test-e2e ## Run linters and tests.
 	@echo "All checks passed."
 
 ##@ General
@@ -52,6 +52,9 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object paths="./..."
+
+.PHONY: codegen
+codegen: manifests generate ## Generate code and manifests.
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
