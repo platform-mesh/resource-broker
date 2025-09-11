@@ -1,47 +1,82 @@
+version: '2'
+
 run:
   timeout: 5m
   allow-parallel-runners: true
 
 issues:
-  # don't skip warning about doc comments
-  # don't exclude the default set of lint
-  exclude-use-default: false
-  # restore some of the defaults
-  # (fill in the rest as needed)
-  exclude-rules:
-    - path: "api/*"
-      linters:
-        - lll
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
 linters:
-  disable-all: true
   enable:
-    - dupl
-    - errcheck
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
     - copyloopvar
-    - ginkgolinter
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - fatcontext
     - goconst
+    - gocritic
     - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
+    - godot
+    - goprintffuncname
+    - gosec
     - govet
+    - importas
     - ineffassign
+    - intrange
     - lll
     - misspell
     - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - nosprintfhostport
     - prealloc
     - revive
     - staticcheck
-    - typecheck
     - unconvert
     - unparam
     - unused
-
-linters-settings:
-  revive:
+    - usestdlibvars
+    - whitespace
+  exclusions:
+    generated: lax
     rules:
-      - name: comment-spacings
+      - path: test/
+        linters:
+          - gosec
+        text: "G204" # subprocess launched with variable
+      - path: test/
+        linters:
+          - gosec
+        text: "G304" # potential file inclusion via variable
+      - path: test/utils/
+        linters:
+          - revive
+        text: "var-naming" # the package name `utils` is fine here
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(k8s.io)
+        - prefix(github.com/platform-mesh)
+        - blank
+        - dot
+      custom-order: true
+  exclusions:
+    generated: disable

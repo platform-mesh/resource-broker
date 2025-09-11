@@ -17,7 +17,11 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - id: version
+        run: |
+          echo "version=$(grep '^GOLANGCI_LINT_VERSION' Makefile | cut -d' ' -f3)" >> $GITHUB_OUTPUT
+
       - name: Run linter
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.63.4
+          version: ${{ steps.version.outputs.version }}
