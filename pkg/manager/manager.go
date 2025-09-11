@@ -65,22 +65,18 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-// Starter is a workaround until mcr can lifecycle providers.
-type Starter interface {
-	multicluster.Provider
-	Start(context.Context, mctrl.Manager) error
-}
+var (
+	metricsAddr                                      string
+	metricsCertPath, metricsCertName, metricsCertKey string
+	webhookCertPath, webhookCertName, webhookCertKey string
+	enableLeaderElection                             bool
+	probeAddr                                        string
+	secureMetrics                                    bool
+	enableHTTP2                                      bool
+	tlsOpts                                          []func(*tls.Config)
+)
 
-// Start starts the manager.
-func Start(ctx context.Context, source, target Starter) error {
-	var metricsAddr string
-	var metricsCertPath, metricsCertName, metricsCertKey string
-	var webhookCertPath, webhookCertName, webhookCertKey string
-	var enableLeaderElection bool
-	var probeAddr string
-	var secureMetrics bool
-	var enableHTTP2 bool
-	var tlsOpts []func(*tls.Config)
+func init() {
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -102,10 +98,17 @@ func Start(ctx context.Context, source, target Starter) error {
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+}
 
+// Starter is a workaround until mcr can lifecycle providers.
+type Starter interface {
+	multicluster.Provider
+	Start(context.Context, mctrl.Manager) error
+}
+
+// Start starts the manager.
+func Start(ctx context.Context, source, target Starter) error {
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
 	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
