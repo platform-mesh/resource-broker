@@ -22,6 +22,10 @@ SHELL = /usr/bin/env bash -o pipefail
 .PHONY: all
 all: build
 
+.PHONY: check
+check: manifests generate lint-fix test test-e2e ## Run linters and tests.
+	@echo "All checks passed."
+
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
