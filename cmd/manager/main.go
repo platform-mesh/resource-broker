@@ -25,6 +25,8 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
@@ -44,6 +46,9 @@ var (
 		"",
 		"Path(s) to the kubeconfig file for the target clusters. If not set, in-cluster config will be used.",
 	)
+	fGroup   = flag.String("group", "", "Group to watch")
+	fVersion = flag.String("version", "", "Version to watch")
+	fKind    = flag.String("kind", "", "Kind to watch")
 )
 
 func main() {
@@ -80,5 +85,10 @@ func doMain(ctx context.Context) error {
 		local,
 		NewWrappedProvider(source, source.Run),
 		NewWrappedProvider(target, target.Run),
+		schema.GroupVersionKind{
+			Group:   *fGroup,
+			Version: *fVersion,
+			Kind:    *fKind,
+		},
 	)
 }

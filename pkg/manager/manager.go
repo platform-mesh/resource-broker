@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -111,7 +112,7 @@ type Starter interface {
 // Start starts the manager.
 // local is the config for the local cluster where the manager will run.
 // TODO(ntnn): separate local and orchestration clusters?
-func Start(ctx context.Context, local *rest.Config, source, target Starter) error {
+func Start(ctx context.Context, local *rest.Config, source, target Starter, gvks ...schema.GroupVersionKind) error {
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
 	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
@@ -274,6 +275,12 @@ func Start(ctx context.Context, local *rest.Config, source, target Starter) erro
 	}
 	if err := mgr.GetLocalManager().Add(multiRunner); err != nil {
 		return fmt.Errorf("unable to add multi provider to manager: %w", err)
+	}
+
+	for _, gvk := range gvks {
+		if err := (&broker.GenericReconciler{GVK: gvk}).SetupWithManager(mgr); err != nil {
+			return fmt.Errorf("failed to watch gvk %q: %w", gvk, err)
+		}
 	}
 
 	setupLog.Info("starting manager")
