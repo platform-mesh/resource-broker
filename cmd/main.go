@@ -18,15 +18,58 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
 	"os"
+	"strings"
+
+	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/providers/file"
 
 	"github.com/platform-mesh/resource-broker/pkg/manager"
 )
 
+var (
+	fSourceKubeconfig = flag.String(
+		"source-kubeconfig",
+		"",
+		"Path(s) to the kubeconfig file for the source clusters. If not set, in-cluster config will be used.",
+	)
+	fTargetKubeconfig = flag.String(
+		"target-kubeconfig",
+		"",
+		"Path(s) to the kubeconfig file for the target clusters. If not set, in-cluster config will be used.",
+	)
+)
+
 func main() {
-	if err := manager.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "problem running manager: %v\n", err)
+	flag.Parse()
+	ctx := mctrl.SetupSignalHandler()
+	if err := doMain(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "problem running main: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func doMain(ctx context.Context) error {
+	source, err := file.New(file.Options{
+		KubeconfigFiles: strings.Split(*fSourceKubeconfig, ","),
+	})
+	if err != nil {
+		return err
+	}
+
+	target, err := file.New(file.Options{
+		KubeconfigFiles: strings.Split(*fTargetKubeconfig, ","),
+	})
+	if err != nil {
+		return err
+	}
+
+	return manager.Start(
+		ctx,
+		NewWrappedProvider(source, source.Run),
+		NewWrappedProvider(target, target.Run),
+	)
 }

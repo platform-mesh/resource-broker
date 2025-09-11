@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -15,9 +16,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
+	"sigs.k8s.io/multicluster-runtime/providers/multi"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/controller"
@@ -42,8 +48,14 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+// Starter is a workaround until mcr can lifecycle providers.
+type Starter interface {
+	multicluster.Provider
+	Start(context.Context, mctrl.Manager) error
+}
+
 // Start starts the manager.
-func Start() error {
+func Start(ctx context.Context, source, target Starter) error {
 	var metricsAddr string
 	var metricsCertPath, metricsCertName, metricsCertKey string
 	var webhookCertPath, webhookCertName, webhookCertKey string
@@ -165,7 +177,9 @@ func Start() error {
 		})
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	multi := multi.New(multi.Options{})
+
+	mgr, err := mctrl.NewManager(ctrl.GetConfigOrDie(), multi, mctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -188,24 +202,23 @@ func Start() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	if err = (&controller.AcceptAPIReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	multi.SetManager(mgr)
+
+	if err = (&controller.AcceptAPIReconciler{}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {
 		setupLog.Info("Adding metrics certificate watcher to manager")
-		if err := mgr.Add(metricsCertWatcher); err != nil {
+		if err := mgr.GetLocalManager().Add(metricsCertWatcher); err != nil {
 			return fmt.Errorf("unable to add metrics certificate watcher to manager: %w", err)
 		}
 	}
 
 	if webhookCertWatcher != nil {
 		setupLog.Info("Adding webhook certificate watcher to manager")
-		if err := mgr.Add(webhookCertWatcher); err != nil {
+		if err := mgr.GetLocalManager().Add(webhookCertWatcher); err != nil {
 			return fmt.Errorf("unable to add webhook certificate watcher to manager: %w", err)
 		}
 	}
@@ -217,8 +230,31 @@ func Start() error {
 		return fmt.Errorf("unable to set up ready check: %w", err)
 	}
 
+	// Adding the multi provider as a runnable as the last step before
+	// starting the manager to ensure everything else in the manager is
+	// started correctly before hand.
+	// The multi provider itself does not need to be started but the
+	// providers it wraps do - and to prevent missing or leaking
+	// clusters they should only be started after the manager.
+	// TODO(ntnn): This can be cleaned up once
+	// https://github.com/kubernetes-sigs/multicluster-runtime/pull/62
+	// is resolved in one way or another.
+	var multiRunner manager.RunnableFunc = func(ctx context.Context) error {
+		if err := multi.AddProvider(ctx, "source", source, source.Start); err != nil {
+			return fmt.Errorf("error adding source provider: %w", err)
+		}
+		if err := multi.AddProvider(ctx, "target", target, target.Start); err != nil {
+			return fmt.Errorf("error adding target provider: %w", err)
+		}
+		<-ctx.Done()
+		return nil
+	}
+	if err := mgr.GetLocalManager().Add(multiRunner); err != nil {
+		return fmt.Errorf("unable to add multi provider to manager: %w", err)
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		return fmt.Errorf("problem running manager: %w", err)
 	}
 	return nil
