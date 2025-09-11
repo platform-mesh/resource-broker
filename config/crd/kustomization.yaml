@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/broker.platform-mesh.io_acceptapis.yaml
+- bases/example.platform-mesh.io_vms.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

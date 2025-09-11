@@ -1,0 +1,9 @@
+apiVersion: example.platform-mesh.io/v1alpha1
+kind: VM
+metadata:
+  labels:
+    app.kubernetes.io/name: resource-broker
+    app.kubernetes.io/managed-by: kustomize
+  name: vm-sample
+spec:
+  # TODO(user): Add fields here

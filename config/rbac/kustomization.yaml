@@ -26,3 +26,10 @@ resources:
 - acceptapi_editor_role.yaml
 - acceptapi_viewer_role.yaml
 
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the resource-broker itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- example_vm_admin_role.yaml
+- example_vm_editor_role.yaml
+- example_vm_viewer_role.yaml
