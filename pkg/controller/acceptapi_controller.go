@@ -19,19 +19,23 @@ package controller
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	mctrl "sigs.k8s.io/multicluster-runtime"
+	mcbuilder "sigs.k8s.io/multicluster-runtime/pkg/builder"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/v1alpha1"
 )
 
 // AcceptAPIReconciler reconciles a AcceptAPI object.
-type AcceptAPIReconciler struct {
-	client.Client
-	Scheme *runtime.Scheme
+type AcceptAPIReconciler struct{}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *AcceptAPIReconciler) SetupWithManager(mgr mctrl.Manager) error {
+	return mcbuilder.ControllerManagedBy(mgr).
+		Named("acceptapi").
+		For(&brokerv1alpha1.AcceptAPI{}).
+		Complete(r)
 }
 
 // +kubebuilder:rbac:groups=broker.platform-mesh.io,resources=acceptapis,verbs=get;list;watch;create;update;patch;delete
@@ -47,18 +51,10 @@ type AcceptAPIReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.2/pkg/reconcile
-func (r *AcceptAPIReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
+func (r *AcceptAPIReconciler) Reconcile(ctx context.Context, _ mctrl.Request) (mctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
 
-	return ctrl.Result{}, nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *AcceptAPIReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&brokerv1alpha1.AcceptAPI{}).
-		Named("acceptapi").
-		Complete(r)
+	return mctrl.Result{}, nil
 }
