@@ -17,7 +17,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VM is the Schema for the vms API
+        description: VM is the Schema for the vms API.
         properties:
           apiVersion:
             description: |-
@@ -39,9 +39,16 @@ spec:
           spec:
             description: spec defines the desired state of VM
             properties:
-              foo:
-                description: foo is an example field of VM. Edit vm_types.go to remove/update
+              arch:
+                description: The architecture of the VM.
+                enum:
+                - x86_64
+                - arm64
                 type: string
+              memory:
+                description: The amount of memory (in MiB) allocated to the VM.
+                minimum: 128
+                type: integer
             type: object
           status:
             description: status defines the observed state of VM
