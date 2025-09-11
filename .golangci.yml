@@ -74,6 +74,8 @@ formatters:
         - standard
         - default
         - prefix(k8s.io)
+        - prefix(sigs.k8s.io/controller-runtime)
+        - prefix(sigs.k8s.io/multicluster-runtime)
         - prefix(github.com/platform-mesh)
         - blank
         - dot
