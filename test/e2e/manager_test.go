@@ -23,11 +23,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 
-	"sigs.k8s.io/multicluster-runtime/providers/single"
+	"sigs.k8s.io/multicluster-runtime/providers/clusters"
 
 	"github.com/platform-mesh/resource-broker/pkg/manager"
 	"github.com/platform-mesh/resource-broker/pkg/wrapprovider"
@@ -39,31 +41,79 @@ import (
 func TestManagerCopy(t *testing.T) {
 	t.Parallel()
 
-	_, localCfg := utils.DefaultEnvTestStart(t)
-
-	_, sourceCfg := utils.DefaultEnvTestStart(t)
+	t.Log("Start a source and target control plane")
+	_, sourceCfg := utils.DefaultEnvTest(t)
 	sourceCl, err := cluster.New(sourceCfg)
 	require.NoError(t, err)
 
-	_, targetCfg := utils.DefaultEnvTestStart(t)
+	_, targetCfg := utils.DefaultEnvTest(t)
 	targetCl, err := cluster.New(targetCfg)
 	require.NoError(t, err)
 
+	sourceClusters := clusters.New()
+	sourceClusters.ErrorHandler = func(err error, msg string, keysAndValues ...any) {
+		t.Logf("source cluster error: %v, %s, %v", err, msg, keysAndValues)
+	}
+
+	targetClusters := clusters.New()
+	targetClusters.ErrorHandler = func(err error, msg string, keysAndValues ...any) {
+		t.Logf("target cluster error: %v, %s, %v", err, msg, keysAndValues)
+	}
+
+	mgr, err := manager.Setup(
+		targetCfg, // Using target control plane as "local" control plane, as if the manager would run there
+		wrapprovider.Wrap(sourceClusters, nil),
+		wrapprovider.Wrap(targetClusters, nil),
+		schema.GroupVersionKind{
+			Group:   "",
+			Version: "v1",
+			Kind:    "ConfigMap",
+		},
+	)
+	require.NoError(t, err)
+
 	go func() {
-		err := manager.Start(
-			t.Context(),
-			localCfg,
-			wrapprovider.Wrap(single.New("source", sourceCl), nil),
-			wrapprovider.Wrap(single.New("target", targetCl), nil),
-			schema.GroupVersionKind{
-				Group:   "core",
-				Version: "v1",
-				Kind:    "ConfigMap",
-			},
-		)
+		err := mgr.Start(t.Context())
 		require.NoError(t, err)
 	}()
 
-	t.Log("waiting for manager to start up")
-	time.Sleep(5 * time.Second)
+	err = sourceClusters.Add(t.Context(), "source", sourceCl, mgr)
+	require.NoError(t, err)
+	err = targetClusters.Add(t.Context(), "target", targetCl, mgr)
+	require.NoError(t, err)
+
+	namespace := "default"
+	cmName := "test-configmap"
+
+	err = sourceCl.GetClient().Create(
+		t.Context(),
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cmName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{
+				"key": "value",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	// require.Eventually(t, func() bool {
+	// 	cm := &corev1.ConfigMap{}
+	// 	err := targetCl.GetClient().Get(
+	// 		t.Context(),
+	// 		types.NamespacedName{
+	// 			Name:      cmName,
+	// 			Namespace: namespace,
+	// 		},
+	// 		cm,
+	// 	)
+	// 	if err != nil {
+	// 		t.Logf("error getting configmap from target cluster: %v", err)
+	// 		return false
+	// 	}
+	// 	return cm.Data["key"] == "value"
+	// }, wait.ForeverTestTimeout, time.Second)
+	time.Sleep(5 * time.Second) // TODO(ntnn): replace once implemented
 }
