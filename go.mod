@@ -6,7 +6,7 @@ toolchain go1.24.6
 
 godebug default=go1.23
 
-replace sigs.k8s.io/multicluster-runtime => github.com/platform-mesh/multicluster-runtime v0.21.0-alpha.9.0.20250912090448-c03e13f8a270
+replace sigs.k8s.io/multicluster-runtime => github.com/platform-mesh/multicluster-runtime v0.21.0-alpha.9.0.20250912101203-baefcbd3cdd9
 
 require (
 	github.com/stretchr/testify v1.10.0
