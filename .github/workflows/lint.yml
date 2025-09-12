@@ -26,6 +26,6 @@ jobs:
           echo "version=$(grep '^GOLANGCI_LINT_VERSION' Makefile | cut -d' ' -f3)" >> $GITHUB_OUTPUT
 
       - name: Run linter
-        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
         with:
           version: ${{ steps.version.outputs.version }}
