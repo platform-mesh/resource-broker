@@ -81,8 +81,7 @@ func doMain(ctx context.Context) error {
 		return err
 	}
 
-	return manager.Start(
-		ctx,
+	mgr, err := manager.Setup(
 		local,
 		wrapprovider.Wrap(source, source.Run),
 		wrapprovider.Wrap(target, target.Run),
@@ -92,4 +91,8 @@ func doMain(ctx context.Context) error {
 			Kind:    *fKind,
 		},
 	)
+	if err != nil {
+		return err
+	}
+	return mgr.Start(ctx)
 }

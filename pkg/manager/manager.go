@@ -109,10 +109,10 @@ type Starter interface {
 	Start(context.Context, mctrl.Manager) error
 }
 
-// Start starts the manager.
+// Setup creates the manager.
 // local is the config for the local cluster where the manager will run.
 // TODO(ntnn): separate local and orchestration clusters?
-func Start(ctx context.Context, local *rest.Config, source, target Starter, gvks ...schema.GroupVersionKind) error {
+func Setup(local *rest.Config, source, target Starter, gvks ...schema.GroupVersionKind) (mctrl.Manager, error) {
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
 	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
@@ -193,7 +193,7 @@ func Start(ctx context.Context, local *rest.Config, source, target Starter, gvks
 			filepath.Join(metricsCertPath, metricsCertKey),
 		)
 		if err != nil {
-			return fmt.Errorf("to initialize metrics certificate watcher: %w", err)
+			return nil, fmt.Errorf("to initialize metrics certificate watcher: %w", err)
 		}
 
 		metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
@@ -223,35 +223,35 @@ func Start(ctx context.Context, local *rest.Config, source, target Starter, gvks
 		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to start manager: %w", err)
+		return nil, fmt.Errorf("unable to start manager: %w", err)
 	}
 
 	multi.SetManager(mgr)
 
 	if err = (&broker.AcceptAPIReconciler{}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("unable to create controller: %w", err)
+		return nil, fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {
 		setupLog.Info("Adding metrics certificate watcher to manager")
 		if err := mgr.GetLocalManager().Add(metricsCertWatcher); err != nil {
-			return fmt.Errorf("unable to add metrics certificate watcher to manager: %w", err)
+			return nil, fmt.Errorf("unable to add metrics certificate watcher to manager: %w", err)
 		}
 	}
 
 	if webhookCertWatcher != nil {
 		setupLog.Info("Adding webhook certificate watcher to manager")
 		if err := mgr.GetLocalManager().Add(webhookCertWatcher); err != nil {
-			return fmt.Errorf("unable to add webhook certificate watcher to manager: %w", err)
+			return nil, fmt.Errorf("unable to add webhook certificate watcher to manager: %w", err)
 		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		return fmt.Errorf("unable to set up health check: %w", err)
+		return nil, fmt.Errorf("unable to set up health check: %w", err)
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		return fmt.Errorf("unable to set up ready check: %w", err)
+		return nil, fmt.Errorf("unable to set up ready check: %w", err)
 	}
 
 	// Adding the multi provider as a runnable as the last step before
@@ -274,18 +274,14 @@ func Start(ctx context.Context, local *rest.Config, source, target Starter, gvks
 		return nil
 	}
 	if err := mgr.GetLocalManager().Add(multiRunner); err != nil {
-		return fmt.Errorf("unable to add multi provider to manager: %w", err)
+		return nil, fmt.Errorf("unable to add multi provider to manager: %w", err)
 	}
 
 	for _, gvk := range gvks {
 		if err := (&broker.GenericReconciler{GVK: gvk}).SetupWithManager(mgr); err != nil {
-			return fmt.Errorf("failed to watch gvk %q: %w", gvk, err)
+			return nil, fmt.Errorf("failed to watch gvk %q: %w", gvk, err)
 		}
 	}
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctx); err != nil {
-		return fmt.Errorf("problem running manager: %w", err)
-	}
-	return nil
+	return mgr, nil
 }
