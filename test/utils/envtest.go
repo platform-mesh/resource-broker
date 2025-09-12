@@ -19,6 +19,7 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,28 +29,50 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
+// GitRepoRoot returns the root directory of the git repository.
+func GitRepoRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(dir + "/.git"); err == nil {
+			return dir, nil
+		}
+		pre := dir
+		dir = filepath.Clean(filepath.Join(dir, ".."))
+		if pre == dir {
+			return "", os.ErrNotExist
+		}
+	}
+}
+
+// EnvOption is an option for configuring the envtest.Environment.
+type EnvOption func(*envtest.Environment)
+
 // DefaultEnvTest returns an envtest.Environment with default values
 // set and a cleanup function registered to stop the environment when
 // the test ends.
-func DefaultEnvTest(t testing.TB) *envtest.Environment {
+func DefaultEnvTest(t testing.TB, opts ...EnvOption) (*envtest.Environment, *rest.Config) {
+	gitRoot, err := GitRepoRoot()
+	require.NoError(t, err)
+	require.NotEmpty(t, gitRoot)
+
 	e := &envtest.Environment{
 		BinaryAssetsDirectory: os.Getenv("KUBEBUILDER_ASSETS"),
 		CRDDirectoryPaths: []string{
-			"config/crd/bases",
+			filepath.Join(gitRoot, "config", "crd", "bases"),
 		},
+		ErrorIfCRDPathMissing: true,
+	}
+	for _, opt := range opts {
+		opt(e)
 	}
 	t.Cleanup(func() {
 		if err := e.Stop(); err != nil {
 			t.Fatalf("failed to stop envtest: %v", err)
 		}
 	})
-	return e
-}
-
-// DefaultEnvTestStart returns the environment as defaulted by
-// DefaultEnvTest and starts it.
-func DefaultEnvTestStart(t testing.TB) (*envtest.Environment, *rest.Config) {
-	e := DefaultEnvTest(t)
 	cfg, err := e.Start()
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
