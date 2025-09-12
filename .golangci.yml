@@ -26,8 +26,8 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - goheader
     - godot
+    - goheader
     - goprintffuncname
     - gosec
     - govet
@@ -41,6 +41,7 @@ linters:
     - noctx
     - nolintlint
     - nosprintfhostport
+    - paralleltest
     - prealloc
     - revive
     - staticcheck
