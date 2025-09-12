@@ -6,8 +6,11 @@ toolchain go1.24.6
 
 godebug default=go1.23
 
+replace sigs.k8s.io/multicluster-runtime => github.com/platform-mesh/multicluster-runtime v0.21.0-alpha.9.0.20250912090448-c03e13f8a270
+
 require (
 	github.com/stretchr/testify v1.10.0
+	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.3
 	sigs.k8s.io/controller-runtime v0.21.0
@@ -86,7 +89,6 @@ require (
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.33.3 // indirect
 	k8s.io/apiextensions-apiserver v0.33.0 // indirect
 	k8s.io/apiserver v0.33.0 // indirect
 	k8s.io/component-base v0.33.0 // indirect
