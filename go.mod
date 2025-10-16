@@ -1,21 +1,16 @@
 module github.com/platform-mesh/resource-broker
 
-go 1.24.0
-
-toolchain go1.25.3
-
-godebug default=go1.23
-
-replace sigs.k8s.io/multicluster-runtime => github.com/platform-mesh/multicluster-runtime v0.21.0-alpha.9.0.20250912101203-baefcbd3cdd9
+go 1.25.0
 
 require (
+	github.com/google/go-cmp v0.7.0
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
-	sigs.k8s.io/controller-runtime v0.22.3
-	sigs.k8s.io/multicluster-runtime v0.21.0-alpha.9
-	sigs.k8s.io/multicluster-runtime/providers/file v0.21.0-alpha.9
+	sigs.k8s.io/controller-runtime v0.22.2
+	sigs.k8s.io/multicluster-runtime v0.21.0-alpha.9.0.20251007094901-9f200578a35e
+	sigs.k8s.io/multicluster-runtime/providers/file v0.21.0-alpha.9.0.20251007094901-9f200578a35e
 )
 
 require (
@@ -41,7 +36,6 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
