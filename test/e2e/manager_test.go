@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/multicluster-runtime/providers/clusters"
 
 	"github.com/platform-mesh/resource-broker/pkg/manager"
-	"github.com/platform-mesh/resource-broker/pkg/wrapprovider"
 	"github.com/platform-mesh/resource-broker/test/utils"
 )
 
@@ -62,8 +61,8 @@ func TestManagerCopy(t *testing.T) {
 
 	mgr, err := manager.Setup(
 		targetCfg, // Using target control plane as "local" control plane, as if the manager would run there
-		wrapprovider.Wrap(sourceClusters, nil),
-		wrapprovider.Wrap(targetClusters, nil),
+		sourceClusters,
+		targetClusters,
 		schema.GroupVersionKind{
 			Group:   "",
 			Version: "v1",
