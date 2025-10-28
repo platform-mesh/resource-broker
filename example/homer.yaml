@@ -1,0 +1,7 @@
+apiVersion: example.platform-mesh.io/v1alpha1
+kind: VM
+metadata:
+  name: vm-from-homer
+spec:
+  arch: x86_64
+  memory: 512

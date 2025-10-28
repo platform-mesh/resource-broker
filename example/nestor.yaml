@@ -1,0 +1,14 @@
+apiVersion: broker.platform-mesh.io/v1alpha1
+kind: AcceptAPI
+metadata:
+  name: vms.example.platform-mesh.io
+spec:
+  gvr:
+    group: example.platform-mesh.io
+    version: v1alpha1
+    resource: vms
+  filters:
+    - key: memory
+      boundary:
+        min: 1024
+        max: 8192
