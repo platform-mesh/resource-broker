@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+
+language: "en-US"
+
+tone_instructions: "be professional and concise, avoid humor, no familiar language"
+early_access: false
+enable_free_tier: true
+
+reviews:
+  profile: "chill"
+  collapse_walkthrough: true
+  path_filters: [
+   '!**/*.yaml',
+   '!**/zz_*.go',
+  ]
+
+  auto_review:
+    labels: [
+      "ai-code-review",
+    ]
