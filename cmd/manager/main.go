@@ -68,6 +68,7 @@ func doMain(ctx context.Context) error {
 
 	source, err := file.New(file.Options{
 		KubeconfigFiles: strings.Split(*fSourceKubeconfig, ","),
+		KubeconfigDirs:  strings.Split(*fSourceKubeconfig, ","),
 	})
 	if err != nil {
 		return err
@@ -75,6 +76,7 @@ func doMain(ctx context.Context) error {
 
 	target, err := file.New(file.Options{
 		KubeconfigFiles: strings.Split(*fTargetKubeconfig, ","),
+		KubeconfigDirs:  strings.Split(*fTargetKubeconfig, ","),
 	})
 	if err != nil {
 		return err

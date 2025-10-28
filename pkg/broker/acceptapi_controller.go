@@ -19,43 +19,94 @@ package broker
 
 import (
 	"context"
+	"slices"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
 	mcbuilder "sigs.k8s.io/multicluster-runtime/pkg/builder"
+	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
 
-// AcceptAPIReconciler reconciles a AcceptAPI object.
-type AcceptAPIReconciler struct{}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *AcceptAPIReconciler) SetupWithManager(mgr mctrl.Manager) error {
+func (b *Broker) acceptAPIReconciler(mgr mctrl.Manager) error {
 	return mcbuilder.ControllerManagedBy(mgr).
 		Named("acceptapi").
 		For(&brokerv1alpha1.AcceptAPI{}).
-		Complete(r)
+		Complete(mcreconcile.Func(b.acceptAPIReconcile))
 }
 
 // +kubebuilder:rbac:groups=broker.platform-mesh.io,resources=acceptapis,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=broker.platform-mesh.io,resources=acceptapis/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=broker.platform-mesh.io,resources=acceptapis/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the AcceptAPI object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.2/pkg/reconcile
-func (r *AcceptAPIReconciler) Reconcile(ctx context.Context, _ mctrl.Request) (mctrl.Result, error) {
-	_ = log.FromContext(ctx)
+const acceptAPIFinalizer = "broker.platform-mesh.io/acceptapi-finalizer"
 
-	// TODO(user): your logic here
+func (b *Broker) acceptAPIReconcile(ctx context.Context, req mctrl.Request) (mctrl.Result, error) {
+	log := ctrllog.FromContext(ctx).WithValues("cluster", req.ClusterName)
+	log.Info("Reconciling AcceptAPI")
 
+	cl, err := b.mgr.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	acceptAPI := &brokerv1alpha1.AcceptAPI{}
+	if err := cl.GetClient().Get(ctx, req.NamespacedName, acceptAPI); err != nil {
+		if apierrors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
+	gvr := acceptAPI.Spec.GVR.String()
+
+	if !acceptAPI.DeletionTimestamp.IsZero() {
+		log.Info("AcceptAPI is being deleted, removing from apiAccepters map")
+
+		b.lock.Lock()
+		b.apiAccepters[gvr] = slices.DeleteFunc(
+			b.apiAccepters[gvr],
+			func(s string) bool {
+				return s == req.ClusterName
+			},
+		)
+		b.lock.Unlock()
+
+		acceptAPI.Finalizers = slices.DeleteFunc(
+			acceptAPI.Finalizers,
+			func(s string) bool {
+				return s == acceptAPIFinalizer
+			},
+		)
+		if err := cl.GetClient().Update(ctx, acceptAPI); err != nil {
+			return mctrl.Result{}, err
+		}
+
+		return mctrl.Result{}, nil
+	}
+
+	b.lock.Lock()
+	if !slices.Contains(b.apiAccepters[gvr], req.ClusterName) {
+		b.apiAccepters[gvr] = append(
+			b.apiAccepters[gvr],
+			req.ClusterName,
+		)
+		log.Info("Added cluster to apiAccepters map for GVR", "gvr", gvr)
+	}
+	b.lock.Unlock()
+
+	if !slices.Contains(acceptAPI.Finalizers, acceptAPIFinalizer) {
+		acceptAPI.Finalizers = append(acceptAPI.Finalizers, acceptAPIFinalizer)
+		if err := cl.GetClient().Update(ctx, acceptAPI); err != nil {
+			return mctrl.Result{}, err
+		}
+	}
+
+	log.Info("Cluster already present in apiAccepters map for GVR", "gvr", gvr)
 	return mctrl.Result{}, nil
 }

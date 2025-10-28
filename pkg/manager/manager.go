@@ -24,10 +24,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,6 +42,7 @@ import (
 	"sigs.k8s.io/multicluster-runtime/providers/multi"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
+	examplev1alpha1 "github.com/platform-mesh/resource-broker/api/example/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/broker"
 
 	//nolint:gci
@@ -54,14 +54,14 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	// utilruntime.Must(clientgoscheme.AddToScheme(scheme.Scheme))
 
-	utilruntime.Must(brokerv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(brokerv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(examplev1alpha1.AddToScheme(scheme.Scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -206,7 +206,7 @@ func Setup(
 	}
 
 	mgr, err := mctrl.NewManager(local, providers, mctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 scheme.Scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
@@ -228,10 +228,9 @@ func Setup(
 		return nil, fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	if err = (&broker.AcceptAPIReconciler{}).SetupWithManager(mgr); err != nil {
-		return nil, fmt.Errorf("unable to create controller: %w", err)
+	if _, err := broker.NewBroker(mgr, gvks...); err != nil {
+		return nil, fmt.Errorf("unable to set up broker with manager: %w", err)
 	}
-	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {
 		setupLog.Info("Adding metrics certificate watcher to manager")
@@ -252,12 +251,6 @@ func Setup(
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		return nil, fmt.Errorf("unable to set up ready check: %w", err)
-	}
-
-	for _, gvk := range gvks {
-		if err := (&broker.GenericReconciler{GVK: gvk}).SetupWithManager(mgr); err != nil {
-			return nil, fmt.Errorf("failed to watch gvk %q: %w", gvk, err)
-		}
 	}
 
 	return mgr, nil
