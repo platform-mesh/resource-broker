@@ -26,11 +26,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 
-	"sigs.k8s.io/multicluster-runtime/providers/clusters"
+	"sigs.k8s.io/multicluster-runtime/providers/single"
 
+	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/manager"
 	"github.com/platform-mesh/resource-broker/test/utils"
 )
@@ -44,25 +47,45 @@ func TestManagerCopy(t *testing.T) {
 	_, sourceCfg := utils.DefaultEnvTest(t)
 	sourceCl, err := cluster.New(sourceCfg)
 	require.NoError(t, err)
+	go func() {
+		err := sourceCl.Start(t.Context())
+		require.NoError(t, err)
+	}()
 
 	_, targetCfg := utils.DefaultEnvTest(t)
 	targetCl, err := cluster.New(targetCfg)
 	require.NoError(t, err)
+	go func() {
+		err := targetCl.Start(t.Context())
+		require.NoError(t, err)
+	}()
 
-	sourceClusters := clusters.New()
-	sourceClusters.ErrorHandler = func(err error, msg string, keysAndValues ...any) {
-		t.Logf("source cluster error: %v, %s, %v", err, msg, keysAndValues)
-	}
+	t.Log("Create AcceptAPI in target control plane")
+	err = targetCl.GetClient().Create(
+		t.Context(),
+		&brokerv1alpha1.AcceptAPI{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "accept-configmaps",
+				Namespace: "default",
+			},
+			Spec: brokerv1alpha1.AcceptAPISpec{
+				GVR: metav1.GroupVersionResource{
+					Group:    "",
+					Version:  "v1",
+					Resource: "configmaps",
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
 
-	targetClusters := clusters.New()
-	targetClusters.ErrorHandler = func(err error, msg string, keysAndValues ...any) {
-		t.Logf("target cluster error: %v, %s, %v", err, msg, keysAndValues)
-	}
+	sourceCluster := single.New("source", sourceCl)
+	targetCluster := single.New("target", targetCl)
 
 	mgr, err := manager.Setup(
 		targetCfg, // Using target control plane as "local" control plane, as if the manager would run there
-		sourceClusters,
-		targetClusters,
+		sourceCluster,
+		targetCluster,
 		schema.GroupVersionKind{
 			Group:   "",
 			Version: "v1",
@@ -76,14 +99,10 @@ func TestManagerCopy(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	err = sourceClusters.Add(t.Context(), "source", sourceCl, mgr)
-	require.NoError(t, err)
-	err = targetClusters.Add(t.Context(), "target", targetCl, mgr)
-	require.NoError(t, err)
-
 	namespace := "default"
 	cmName := "test-configmap"
 
+	t.Log("Create ConfigMap in source cluster")
 	err = sourceCl.GetClient().Create(
 		t.Context(),
 		&corev1.ConfigMap{
@@ -98,21 +117,21 @@ func TestManagerCopy(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// require.Eventually(t, func() bool {
-	// 	cm := &corev1.ConfigMap{}
-	// 	err := targetCl.GetClient().Get(
-	// 		t.Context(),
-	// 		types.NamespacedName{
-	// 			Name:      cmName,
-	// 			Namespace: namespace,
-	// 		},
-	// 		cm,
-	// 	)
-	// 	if err != nil {
-	// 		t.Logf("error getting configmap from target cluster: %v", err)
-	// 		return false
-	// 	}
-	// 	return cm.Data["key"] == "value"
-	// }, wait.ForeverTestTimeout, time.Second)
-	time.Sleep(5 * time.Second) // TODO(ntnn): replace once implemented
+	t.Log("Wait for ConfigMap to appear in target cluster")
+	require.Eventually(t, func() bool {
+		cm := &corev1.ConfigMap{}
+		err := targetCl.GetClient().Get(
+			t.Context(),
+			types.NamespacedName{
+				Name:      cmName,
+				Namespace: namespace,
+			},
+			cm,
+		)
+		if err != nil {
+			t.Logf("error getting configmap from target cluster: %v", err)
+			return false
+		}
+		return cm.Data["key"] == "value"
+	}, wait.ForeverTestTimeout, time.Second)
 }
