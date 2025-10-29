@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -150,7 +151,7 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 						continue
 					}
 
-					applies, err := providerApplies(ctx, providerCluster, gvr, obj)
+					_, applies, err := providerApplies(ctx, providerCluster, gvr, obj)
 					if err != nil {
 						log.Error(err, "Failed to check if provider applies", "cluster", possibleProvider)
 						continue
@@ -191,7 +192,7 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 			}
 
 			// Verify that the provider still applies
-			applies, err := providerApplies(ctx, providerCluster, gvr, obj)
+			acceptAPI, applies, err := providerApplies(ctx, providerCluster, gvr, obj)
 			if err != nil {
 				log.Error(err, "Failed to check if provider still applies", "cluster", provider)
 				return mctrl.Result{}, err
@@ -218,6 +219,8 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 
 			log.Info("Syncing resource between consumer and provider cluster", "cluster", provider)
 			// TODO send conditions back to consumer cluster
+			// TODO there should be two informers triggering this - one
+			// for consumer and one for provider
 			_, err = CopyResource(
 				ctx,
 				gvk,
@@ -230,6 +233,41 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 				return mctrl.Result{}, err
 			}
 
+			for _, relatedGVR := range acceptAPI.Spec.RelatedResources {
+				objs := &unstructured.UnstructuredList{}
+				if err := providerCluster.GetClient().List(
+					ctx,
+					objs,
+					client.InNamespace(req.Namespace),
+					client.MatchingLabels{
+						brokerv1alpha1.RelatedResourceLabel: req.Name,
+					},
+				); err != nil {
+					log.Error(err, "Failed to list related resources from provider cluster",
+						"relatedGVR", relatedGVR, "cluster", provider)
+					continue
+				}
+
+				// TODO no drift detection atm. this should look for
+				// orphaned resources in the consumer cluster and delete
+				// them
+				for _, relatedObj := range objs.Items {
+					log = log.WithValues("relatedGVR", relatedGVR, "relatedName", relatedObj.GetName())
+					log.Info("Syncing related resource from provider to consumer")
+					// TODO conditions
+					_, err := CopyResource(
+						ctx,
+						relatedObj.GroupVersionKind(),
+						client.ObjectKey{Namespace: relatedObj.GetNamespace(), Name: relatedObj.GetName()},
+						providerCluster.GetClient(),
+						cl.GetClient(),
+					)
+					if err != nil {
+						log.Error(err, "Failed to copy related resource to consumer cluster")
+					}
+				}
+			}
+
 			return mctrl.Result{}, nil
 		},
 	)
@@ -240,12 +278,12 @@ func providerApplies(
 	cl cluster.Cluster,
 	gvr metav1.GroupVersionResource,
 	obj *unstructured.Unstructured,
-) (bool, error) {
+) (*brokerv1alpha1.AcceptAPI, bool, error) {
 	// TODO cache AcceptAPI, the acceptApi reconciler can update a cache
 	// in the broker
 	acceptAPIs := &brokerv1alpha1.AcceptAPIList{}
 	if err := cl.GetClient().List(ctx, acceptAPIs); err != nil {
-		return false, fmt.Errorf("failed to list AcceptAPIs: %w", err)
+		return nil, false, fmt.Errorf("failed to list AcceptAPIs: %w", err)
 	}
 
 	for _, acceptAPI := range acceptAPIs.Items {
@@ -253,9 +291,9 @@ func providerApplies(
 			continue
 		}
 		if acceptAPI.Spec.AppliesTo(obj) {
-			return true, nil
+			return &acceptAPI, true, nil
 		}
 	}
 
-	return false, nil
+	return nil, false, nil
 }

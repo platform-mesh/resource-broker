@@ -27,6 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// RelatedResourceLabel is the label key used to mark related resources
+// created by the provider that should be synced back to the consumer.
+const RelatedResourceLabel = "acceptapi.broker.platform-mesh.io/source"
+
 // AcceptAPISpec defines the desired state of AcceptAPI.
 type AcceptAPISpec struct {
 	// GVR is the GroupVersionResource of the API to accept.
@@ -38,6 +42,24 @@ type AcceptAPISpec struct {
 
 	// // Template is the template to use for the accepted resources.
 	// Template metav1.RawExtension `json:"template,omitempty"`
+
+	// RelatedResources are resources that will be synced back from the
+	// provider to the consumer when serving a resource.
+	// The GVRs define which resources should be synced back. Which of
+	// the resources will be synced back is defined by the
+	// RelatedResourceLabel on the resources.
+	// The key must be the name of the synced resource.
+	//
+	// E.g.
+	//   AcceptAPI for Foo
+	//   Consumer creates Foo "bar"
+	//   Broker syncs "bar" to provider
+	//   Provider creates related Secret "baz" and sets the label RelatedResourceLabel=bar
+	//   Broker sync Secret "baz" back to consumer
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinItems=0
+	RelatedResources []metav1.GroupVersionResource `json:"relatedResources,omitempty"`
 }
 
 // Filter defines a filter to select resources.

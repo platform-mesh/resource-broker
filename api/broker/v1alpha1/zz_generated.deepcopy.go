@@ -5,6 +5,7 @@
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -77,6 +78,11 @@ func (in *AcceptAPISpec) DeepCopyInto(out *AcceptAPISpec) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.RelatedResources != nil {
+		in, out := &in.RelatedResources, &out.RelatedResources
+		*out = make([]v1.GroupVersionResource, len(*in))
+		copy(*out, *in)
 	}
 }
 
