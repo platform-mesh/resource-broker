@@ -19,7 +19,6 @@ package broker
 
 import (
 	"context"
-	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -69,12 +68,13 @@ func (b *Broker) acceptAPIReconcile(ctx context.Context, req mctrl.Request) (mct
 		log.Info("AcceptAPI is being deleted, removing from apiAccepters map")
 
 		b.lock.Lock()
-		b.apiAccepters[gvr] = slices.DeleteFunc(
-			b.apiAccepters[gvr],
-			func(s string) bool {
-				return s == req.ClusterName
-			},
-		)
+		clusterAcceptedAPIs, ok := b.apiAccepters[gvr][req.ClusterName]
+		if ok {
+			delete(clusterAcceptedAPIs, acceptAPI.Name)
+			if len(clusterAcceptedAPIs) == 0 {
+				delete(b.apiAccepters[gvr], req.ClusterName)
+			}
+		}
 		b.lock.Unlock()
 
 		if ctrlutil.RemoveFinalizer(acceptAPI, acceptAPIFinalizer) {
@@ -86,21 +86,21 @@ func (b *Broker) acceptAPIReconcile(ctx context.Context, req mctrl.Request) (mct
 		return mctrl.Result{}, nil
 	}
 
-	b.lock.Lock()
-	if !slices.Contains(b.apiAccepters[gvr], req.ClusterName) {
-		b.apiAccepters[gvr] = append(
-			b.apiAccepters[gvr],
-			req.ClusterName,
-		)
-		log.Info("Added cluster to apiAccepters map for GVR", "gvr", gvr)
-	}
-	b.lock.Unlock()
-
 	if ctrlutil.AddFinalizer(acceptAPI, acceptAPIFinalizer) {
 		if err := cl.GetClient().Update(ctx, acceptAPI); err != nil {
 			return mctrl.Result{}, err
 		}
 	}
+
+	b.lock.Lock()
+	if _, ok := b.apiAccepters[gvr]; !ok {
+		b.apiAccepters[gvr] = make(map[string]map[string]*brokerv1alpha1.AcceptAPI)
+	}
+	if _, ok := b.apiAccepters[gvr][req.ClusterName]; !ok {
+		b.apiAccepters[gvr][req.ClusterName] = make(map[string]*brokerv1alpha1.AcceptAPI)
+	}
+	b.apiAccepters[gvr][req.ClusterName][acceptAPI.Name] = acceptAPI
+	b.lock.Unlock()
 
 	log.Info("Cluster already present in apiAccepters map for GVR", "gvr", gvr)
 	return mctrl.Result{}, nil

@@ -19,7 +19,6 @@ package broker
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -144,22 +142,16 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 
 				log.Info("Finding accepting cluster from possible providers", "possibleProviders", possibleProviders)
 
-				for _, possibleProvider := range possibleProviders {
-					providerCluster, err := b.mgr.GetCluster(ctx, possibleProvider)
-					if err != nil {
-						log.Error(err, "Failed to get possible provider cluster", "cluster", possibleProvider)
-						continue
+				for possibleProvider, acceptedAPIs := range possibleProviders {
+					for acceptAPIName, acceptAPI := range acceptedAPIs {
+						if acceptAPI.AppliesTo(gvr, obj) {
+							log.Info("Found accepting cluster", "cluster", possibleProvider, "acceptAPI", acceptAPIName)
+							provider = possibleProvider
+							break
+						}
 					}
 
-					_, applies, err := providerApplies(ctx, providerCluster, gvr, obj)
-					if err != nil {
-						log.Error(err, "Failed to check if provider applies", "cluster", possibleProvider)
-						continue
-					}
-
-					if applies {
-						log.Info("Found accepting cluster", "cluster", possibleProvider)
-						provider = possibleProvider
+					if provider != "" {
 						break
 					}
 				}
@@ -181,6 +173,21 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 				}
 			}
 
+			acceptedProviderAPIs, ok := b.apiAccepters[gvr][provider]
+			if !ok || len(acceptedProviderAPIs) == 0 {
+				log.Info("Annotated provider cluster no longer accepts this GVR, removing annotation", "cluster", provider)
+				anns := obj.GetAnnotations()
+				delete(anns, providerClusterAnn)
+				obj.SetAnnotations(anns)
+				if err := cl.GetClient().Update(ctx, obj); err != nil {
+					log.Error(err, "Failed to remove provider annotation from resource")
+					return mctrl.Result{}, err
+				}
+				// TODO conditions
+				// requeue
+				return mctrl.Result{}, nil
+			}
+
 			providerCluster, err := b.mgr.GetCluster(ctx, provider)
 			if err != nil {
 				log.Error(err, "Failed to get provider cluster", "cluster", provider)
@@ -191,14 +198,15 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 				return mctrl.Result{}, err
 			}
 
-			// Verify that the provider still applies
-			acceptAPI, applies, err := providerApplies(ctx, providerCluster, gvr, obj)
-			if err != nil {
-				log.Error(err, "Failed to check if provider still applies", "cluster", provider)
-				return mctrl.Result{}, err
+			var acceptAPI *brokerv1alpha1.AcceptAPI
+			for i := range acceptedProviderAPIs {
+				if acceptedProviderAPIs[i].AppliesTo(gvr, obj) {
+					acceptAPI = acceptedProviderAPIs[i]
+					break
+				}
 			}
-			if !applies {
-				log.Info("Provider cluster no longer applies, deleting in provider", "cluster", provider)
+			if acceptAPI == nil {
+				log.Info("Annotated provider cluster no longer applies, deleting from provider", "cluster", provider)
 				if err := providerCluster.GetClient().Delete(ctx, StripClusterMetadata(obj)); err != nil {
 					if !apierrors.IsNotFound(err) {
 						log.Error(err, "Failed to delete resource from provider cluster", "cluster", provider)
@@ -206,6 +214,7 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 					}
 				}
 
+				log.Info("Annotated provider cluster no longer applies, removing annotation", "cluster", provider)
 				anns := obj.GetAnnotations()
 				delete(anns, providerClusterAnn)
 				obj.SetAnnotations(anns)
@@ -214,6 +223,7 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 					return mctrl.Result{}, err
 				}
 				// TODO conditions
+				// requeue
 				return mctrl.Result{}, nil
 			}
 
@@ -233,6 +243,11 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 				return mctrl.Result{}, err
 			}
 
+			// TODO this is volatile, related resources should be
+			// defined through another kind instead of part of the
+			// AcceptAPI. ATM it is possible fwo two AcceptAPIs with
+			// differing RelatedResources to accept the same
+			// API/resource.
 			for _, relatedGVR := range acceptAPI.Spec.RelatedResources {
 				objs := &unstructured.UnstructuredList{}
 				if err := providerCluster.GetClient().List(
@@ -271,29 +286,4 @@ func (b *Broker) genericReconcilerFactory(gvk schema.GroupVersionKind) reconcile
 			return mctrl.Result{}, nil
 		},
 	)
-}
-
-func providerApplies(
-	ctx context.Context,
-	cl cluster.Cluster,
-	gvr metav1.GroupVersionResource,
-	obj *unstructured.Unstructured,
-) (*brokerv1alpha1.AcceptAPI, bool, error) {
-	// TODO cache AcceptAPI, the acceptApi reconciler can update a cache
-	// in the broker
-	acceptAPIs := &brokerv1alpha1.AcceptAPIList{}
-	if err := cl.GetClient().List(ctx, acceptAPIs); err != nil {
-		return nil, false, fmt.Errorf("failed to list AcceptAPIs: %w", err)
-	}
-
-	for _, acceptAPI := range acceptAPIs.Items {
-		if acceptAPI.Spec.GVR.String() != gvr.String() {
-			continue
-		}
-		if acceptAPI.Spec.AppliesTo(obj) {
-			return &acceptAPI, true, nil
-		}
-	}
-
-	return nil, false, nil
 }
