@@ -5,6 +5,7 @@
 package v1alpha1
 
 import (
+	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -204,6 +205,11 @@ func (in *VMStatus) DeepCopyInto(out *VMStatus) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.RelatedResources != nil {
+		in, out := &in.RelatedResources, &out.RelatedResources
+		*out = make(brokerv1alpha1.RelatedResources, len(*in))
+		copy(*out, *in)
 	}
 }
 
