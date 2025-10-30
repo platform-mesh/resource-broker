@@ -57,10 +57,10 @@ func Setup(opts Options) (mctrl.Manager, error) {
 	opts.MgrOptions.Scheme = scheme.Scheme
 
 	providers := multi.New(multi.Options{})
-	if err := providers.AddProvider("source", opts.Source); err != nil {
+	if err := providers.AddProvider(broker.ConsumerPrefix, opts.Source); err != nil {
 		return nil, fmt.Errorf("unable to add source provider: %w", err)
 	}
-	if err := providers.AddProvider("target", opts.Target); err != nil {
+	if err := providers.AddProvider(broker.ProviderPrefix, opts.Target); err != nil {
 		return nil, fmt.Errorf("unable to add target provider: %w", err)
 	}
 
@@ -71,6 +71,7 @@ func Setup(opts Options) (mctrl.Manager, error) {
 
 	if _, err := broker.NewBroker(
 		mgr,
+		opts.Source, opts.Target,
 		opts.GVKs...,
 	); err != nil {
 		return nil, fmt.Errorf("unable to set up broker with manager: %w", err)
