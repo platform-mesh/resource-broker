@@ -15,22 +15,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package manager
+// The main package running the resource-broker.
+package main
 
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -38,15 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
-	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
-	"sigs.k8s.io/multicluster-runtime/providers/multi"
+	"sigs.k8s.io/multicluster-runtime/providers/file"
 
-	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
-	examplev1alpha1 "github.com/platform-mesh/resource-broker/api/example/v1alpha1"
-	"github.com/platform-mesh/resource-broker/pkg/broker"
-
-	//nolint:gci
-	//+kubebuilder:scaffold:imports
+	"github.com/platform-mesh/resource-broker/cmd/manager"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -55,28 +46,31 @@ import (
 
 var (
 	setupLog = ctrl.Log.WithName("setup")
+
+	fSourceKubeconfig = flag.String(
+		"source-kubeconfig",
+		"",
+		"Path(s) to the kubeconfig file for the source clusters. If not set, in-cluster config will be used.",
+	)
+	fTargetKubeconfig = flag.String(
+		"target-kubeconfig",
+		"",
+		"Path(s) to the kubeconfig file for the target clusters. If not set, in-cluster config will be used.",
+	)
+	fGroup   = flag.String("group", "", "Group to watch")
+	fVersion = flag.String("version", "", "Version to watch")
+	fKind    = flag.String("kind", "", "Kind to watch")
 )
 
-func init() {
-	// utilruntime.Must(clientgoscheme.AddToScheme(scheme.Scheme))
-
-	utilruntime.Must(brokerv1alpha1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(examplev1alpha1.AddToScheme(scheme.Scheme))
-	// +kubebuilder:scaffold:scheme
-}
-
-var (
-	metricsAddr                                      string
-	metricsCertPath, metricsCertName, metricsCertKey string
-	webhookCertPath, webhookCertName, webhookCertKey string
-	enableLeaderElection                             bool
-	probeAddr                                        string
-	secureMetrics                                    bool
-	enableHTTP2                                      bool
-	tlsOpts                                          []func(*tls.Config)
-)
-
-func init() {
+func main() {
+	var metricsAddr string
+	var metricsCertPath, metricsCertName, metricsCertKey string
+	var webhookCertPath, webhookCertName, webhookCertKey string
+	var enableLeaderElection bool
+	var probeAddr string
+	var secureMetrics bool
+	var enableHTTP2 bool
+	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -98,17 +92,12 @@ func init() {
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-}
+	flag.Parse()
 
-// Setup creates the manager.
-// local is the config for the local cluster where the manager will run.
-// TODO(ntnn): separate local and orchestration clusters?
-func Setup(
-	local *rest.Config,
-	source, target multicluster.Provider,
-	gvks ...schema.GroupVersionKind,
-) (mctrl.Manager, error) {
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	ctx := mctrl.SetupSignalHandler()
+
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
 	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
@@ -124,38 +113,26 @@ func Setup(
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
-	// Create watchers for metrics and webhooks certificates
-	var metricsCertWatcher, webhookCertWatcher *certwatcher.CertWatcher
-
 	// Initial webhook TLS options
 	webhookTLSOpts := tlsOpts
+	webhookServerOptions := webhook.Options{
+		TLSOpts: webhookTLSOpts,
+	}
 
 	if len(webhookCertPath) > 0 {
 		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
 			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
 
-		var err error
-		webhookCertWatcher, err = certwatcher.New(
-			filepath.Join(webhookCertPath, webhookCertName),
-			filepath.Join(webhookCertPath, webhookCertKey),
-		)
-		if err != nil {
-			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
-			os.Exit(1)
-		}
-
-		webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
-			config.GetCertificate = webhookCertWatcher.GetCertificate
-		})
+		webhookServerOptions.CertDir = webhookCertPath
+		webhookServerOptions.CertName = webhookCertName
+		webhookServerOptions.KeyName = webhookCertKey
 	}
 
-	webhookServer := webhook.NewServer(webhook.Options{
-		TLSOpts: webhookTLSOpts,
-	})
+	webhookServer := webhook.NewServer(webhookServerOptions)
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
-	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.2/pkg/metrics/server
+	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.1/pkg/metrics/server
 	// - https://book.kubebuilder.io/reference/metrics.html
 	metricsServerOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
@@ -167,7 +144,7 @@ func Setup(
 		// FilterProvider is used to protect the metrics endpoint with authn/authz.
 		// These configurations ensure that only authorized users and service accounts
 		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
-		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.2/pkg/metrics/filters#WithAuthenticationAndAuthorization
+		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
 
@@ -183,75 +160,86 @@ func Setup(
 		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
 			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
 
-		var err error
-		metricsCertWatcher, err = certwatcher.New(
-			filepath.Join(metricsCertPath, metricsCertName),
-			filepath.Join(metricsCertPath, metricsCertKey),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("to initialize metrics certificate watcher: %w", err)
-		}
-
-		metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
-			config.GetCertificate = metricsCertWatcher.GetCertificate
-		})
+		metricsServerOptions.CertDir = metricsCertPath
+		metricsServerOptions.CertName = metricsCertName
+		metricsServerOptions.KeyName = metricsCertKey
 	}
 
-	providers := multi.New(multi.Options{})
-	if err := providers.AddProvider("source", source); err != nil {
-		return nil, fmt.Errorf("to add source provider: %w", err)
-	}
-	if err := providers.AddProvider("target", target); err != nil {
-		return nil, fmt.Errorf("to add target provider: %w", err)
+	local, err := ctrl.GetConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to get local kubeconfig")
+		os.Exit(1)
 	}
 
-	mgr, err := mctrl.NewManager(local, providers, mctrl.Options{
-		Scheme:                 scheme.Scheme,
-		Metrics:                metricsServerOptions,
-		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "c8c3e66c.platform-mesh.io",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
+	source, err := file.New(file.Options{
+		KubeconfigFiles: strings.Split(*fSourceKubeconfig, ","),
+		KubeconfigDirs:  strings.Split(*fSourceKubeconfig, ","),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to start manager: %w", err)
+		setupLog.Error(err, "unable to create source provider")
+		os.Exit(1)
 	}
 
-	if _, err := broker.NewBroker(mgr, gvks...); err != nil {
-		return nil, fmt.Errorf("unable to set up broker with manager: %w", err)
+	target, err := file.New(file.Options{
+		KubeconfigFiles: strings.Split(*fTargetKubeconfig, ","),
+		KubeconfigDirs:  strings.Split(*fTargetKubeconfig, ","),
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to create target provider")
+		os.Exit(1)
 	}
 
-	if metricsCertWatcher != nil {
-		setupLog.Info("Adding metrics certificate watcher to manager")
-		if err := mgr.GetLocalManager().Add(metricsCertWatcher); err != nil {
-			return nil, fmt.Errorf("unable to add metrics certificate watcher to manager: %w", err)
-		}
+	mgr, err := manager.Setup(manager.Options{
+		MgrOptions: mctrl.Options{
+			Scheme:                 scheme.Scheme,
+			Metrics:                metricsServerOptions,
+			WebhookServer:          webhookServer,
+			HealthProbeBindAddress: probeAddr,
+			LeaderElection:         enableLeaderElection,
+			LeaderElectionID:       "c8c3e66c.platform-mesh.io",
+			// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
+			// when the Manager ends. This requires the binary to immediately end when the
+			// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
+			// speeds up voluntary leader transitions as the new leader don't have to wait
+			// LeaseDuration time first.
+			//
+			// In the default scaffold provided, the program ends immediately after
+			// the manager stops, so would be fine to enable this option. However,
+			// if you are doing or is intended to do any operation such as perform cleanups
+			// after the manager stops then its usage might be unsafe.
+			// LeaderElectionReleaseOnCancel: true,
+		},
+		Local:   local,
+		Compute: local,
+		Source:  source,
+		Target:  target,
+		GVKs: []schema.GroupVersionKind{
+			{
+				Group:   *fGroup,
+				Version: *fVersion,
+				Kind:    *fKind,
+			},
+		},
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to set up overall controller manager")
+		os.Exit(1)
 	}
 
-	if webhookCertWatcher != nil {
-		setupLog.Info("Adding webhook certificate watcher to manager")
-		if err := mgr.GetLocalManager().Add(webhookCertWatcher); err != nil {
-			return nil, fmt.Errorf("unable to add webhook certificate watcher to manager: %w", err)
-		}
-	}
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		return nil, fmt.Errorf("unable to set up health check: %w", err)
+		setupLog.Error(err, "unable to set up health check")
+		os.Exit(1)
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		return nil, fmt.Errorf("unable to set up ready check: %w", err)
+		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
 	}
 
-	return mgr, nil
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctx); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
 }
