@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+
+	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
 
 // Broker brokers API resources to clusters that have accepted given
@@ -36,14 +38,15 @@ type Broker struct {
 
 	// apiAccepters maps GVRs to the names of clusters that accept
 	// a given API.
-	apiAccepters map[metav1.GroupVersionResource][]string
+	// GVR -> clusterName -> acceptAPI.Name -> AcceptAPI
+	apiAccepters map[metav1.GroupVersionResource]map[string]map[string]*brokerv1alpha1.AcceptAPI
 }
 
 // NewBroker creates a new broker that acts on the given manager.
 func NewBroker(mgr mctrl.Manager, gvks ...schema.GroupVersionKind) (*Broker, error) {
 	b := new(Broker)
 	b.mgr = mgr
-	b.apiAccepters = make(map[metav1.GroupVersionResource][]string)
+	b.apiAccepters = make(map[metav1.GroupVersionResource]map[string]map[string]*brokerv1alpha1.AcceptAPI)
 
 	if err := b.acceptAPIReconciler(mgr); err != nil {
 		return nil, err

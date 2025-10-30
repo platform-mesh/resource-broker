@@ -77,12 +77,13 @@ type Boundary struct {
 	Max *int `json:"max,omitempty"`
 }
 
-// AppliesTo checks if the given object matches the filters in the
-// AcceptAPISpec.
-func (spec *AcceptAPISpec) AppliesTo(obj *unstructured.Unstructured) bool {
-	// Assuming GVR/GVK is already matched.
+// AppliesTo checks if the given object matches the filters.
+func (acceptAPI *AcceptAPI) AppliesTo(gvr metav1.GroupVersionResource, obj *unstructured.Unstructured) bool {
+	if acceptAPI.Spec.GVR.String() != gvr.String() {
+		return false
+	}
 
-	for _, filter := range spec.Filters {
+	for _, filter := range acceptAPI.Spec.Filters {
 		fields := []string{"spec"}
 		fields = append(fields, strings.Split(filter.Key, ".")...)
 
