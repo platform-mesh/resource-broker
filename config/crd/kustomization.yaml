@@ -4,6 +4,7 @@
 resources:
 - bases/broker.platform-mesh.io_acceptapis.yaml
 - bases/example.platform-mesh.io_vms.yaml
+- bases/example.platform-mesh.io_rdbmss.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

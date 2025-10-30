@@ -30,6 +30,9 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the resource-broker itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- example_rdbms_admin_role.yaml
+- example_rdbms_editor_role.yaml
+- example_rdbms_viewer_role.yaml
 - example_vm_admin_role.yaml
 - example_vm_editor_role.yaml
 - example_vm_viewer_role.yaml
