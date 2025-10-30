@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +35,7 @@ import (
 	"sigs.k8s.io/multicluster-runtime/providers/single"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
-	"github.com/platform-mesh/resource-broker/pkg/manager"
+	"github.com/platform-mesh/resource-broker/cmd/manager"
 	"github.com/platform-mesh/resource-broker/test/utils"
 )
 
@@ -82,21 +83,24 @@ func TestManagerCopy(t *testing.T) {
 	sourceCluster := single.New("source", sourceCl)
 	targetCluster := single.New("target", targetCl)
 
-	mgr, err := manager.Setup(
-		targetCfg, // Using target control plane as "local" control plane, as if the manager would run there
-		sourceCluster,
-		targetCluster,
-		schema.GroupVersionKind{
-			Group:   "",
-			Version: "v1",
-			Kind:    "ConfigMap",
+	mgr, err := manager.Setup(manager.Options{
+		Local:   sourceCfg,
+		Compute: sourceCfg,
+		Source:  sourceCluster,
+		Target:  targetCluster,
+		GVKs: []schema.GroupVersionKind{
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "ConfigMap",
+			},
 		},
-	)
+	})
 	require.NoError(t, err)
 
 	go func() {
 		err := mgr.Start(t.Context())
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}()
 
 	namespace := "default"
