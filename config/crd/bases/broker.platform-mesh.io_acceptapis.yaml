@@ -39,10 +39,80 @@ spec:
           spec:
             description: AcceptAPISpec defines the desired state of AcceptAPI.
             properties:
-              foo:
-                description: Foo is an example field of AcceptAPI. Edit acceptapi_types.go
-                  to remove/update
-                type: string
+              filters:
+                description: Filters to select which resources of the GVR to accept.
+                items:
+                  description: Filter defines a filter to select resources.
+                  properties:
+                    boundary:
+                      description: Boundary defines a min and max boundary for numeric
+                        filtering.
+                      properties:
+                        max:
+                          type: integer
+                        min:
+                          type: integer
+                      type: object
+                    key:
+                      minLength: 1
+                      type: string
+                    valueIn:
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - key
+                  type: object
+                type: array
+              gvr:
+                description: GVR is the GroupVersionResource of the API to accept.
+                properties:
+                  group:
+                    type: string
+                  resource:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - group
+                - resource
+                - version
+                type: object
+              relatedResources:
+                description: |-
+                  RelatedResources are resources that will be synced back from the
+                  provider to the consumer when serving a resource.
+                  The GVRs define which resources should be synced back. Which of
+                  the resources will be synced back is defined by the
+                  RelatedResourceLabel on the resources.
+                  The key must be the name of the synced resource.
+
+                  E.g.
+                    AcceptAPI for Foo
+                    Consumer creates Foo "bar"
+                    Broker syncs "bar" to provider
+                    Provider creates related Secret "baz" and sets the label RelatedResourceLabel=bar
+                    Broker sync Secret "baz" back to consumer
+                items:
+                  description: |-
+                    GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
+                    to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling
+                  properties:
+                    group:
+                      type: string
+                    resource:
+                      type: string
+                    version:
+                      type: string
+                  required:
+                  - group
+                  - resource
+                  - version
+                  type: object
+                minItems: 0
+                type: array
+            required:
+            - gvr
             type: object
           status:
             description: AcceptAPIStatus defines the observed state of AcceptAPI.

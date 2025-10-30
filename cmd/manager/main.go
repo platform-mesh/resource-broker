@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/multicluster-runtime/providers/file"
 
 	"github.com/platform-mesh/resource-broker/pkg/manager"
-	"github.com/platform-mesh/resource-broker/pkg/wrapprovider"
 )
 
 var (
@@ -69,6 +68,7 @@ func doMain(ctx context.Context) error {
 
 	source, err := file.New(file.Options{
 		KubeconfigFiles: strings.Split(*fSourceKubeconfig, ","),
+		KubeconfigDirs:  strings.Split(*fSourceKubeconfig, ","),
 	})
 	if err != nil {
 		return err
@@ -76,6 +76,7 @@ func doMain(ctx context.Context) error {
 
 	target, err := file.New(file.Options{
 		KubeconfigFiles: strings.Split(*fTargetKubeconfig, ","),
+		KubeconfigDirs:  strings.Split(*fTargetKubeconfig, ","),
 	})
 	if err != nil {
 		return err
@@ -83,8 +84,8 @@ func doMain(ctx context.Context) error {
 
 	mgr, err := manager.Setup(
 		local,
-		wrapprovider.Wrap(source, source.Run),
-		wrapprovider.Wrap(target, target.Run),
+		source,
+		target,
 		schema.GroupVersionKind{
 			Group:   *fGroup,
 			Version: *fVersion,

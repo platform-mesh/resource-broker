@@ -18,19 +18,107 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// RelatedResourceLabel is the label key used to mark related resources
+// created by the provider that should be synced back to the consumer.
+const RelatedResourceLabel = "acceptapi.broker.platform-mesh.io/source"
 
 // AcceptAPISpec defines the desired state of AcceptAPI.
 type AcceptAPISpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// GVR is the GroupVersionResource of the API to accept.
+	// +kubebuilder:validation:Required
+	GVR metav1.GroupVersionResource `json:"gvr"`
 
-	// Foo is an example field of AcceptAPI. Edit acceptapi_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Filters to select which resources of the GVR to accept.
+	Filters []Filter `json:"filters,omitempty"`
+
+	// // Template is the template to use for the accepted resources.
+	// Template metav1.RawExtension `json:"template,omitempty"`
+
+	// RelatedResources are resources that will be synced back from the
+	// provider to the consumer when serving a resource.
+	// The GVRs define which resources should be synced back. Which of
+	// the resources will be synced back is defined by the
+	// RelatedResourceLabel on the resources.
+	// The key must be the name of the synced resource.
+	//
+	// E.g.
+	//   AcceptAPI for Foo
+	//   Consumer creates Foo "bar"
+	//   Broker syncs "bar" to provider
+	//   Provider creates related Secret "baz" and sets the label RelatedResourceLabel=bar
+	//   Broker sync Secret "baz" back to consumer
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinItems=0
+	RelatedResources []metav1.GroupVersionResource `json:"relatedResources,omitempty"`
+}
+
+// Filter defines a filter to select resources.
+type Filter struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Key      string   `json:"key"`
+	ValueIn  []string `json:"valueIn,omitempty"`
+	Boundary Boundary `json:"boundary,omitempty"`
+}
+
+// Boundary defines a min and max boundary for numeric filtering.
+type Boundary struct {
+	Min *int `json:"min,omitempty"`
+	Max *int `json:"max,omitempty"`
+}
+
+// AppliesTo checks if the given object matches the filters in the
+// AcceptAPISpec.
+func (spec *AcceptAPISpec) AppliesTo(obj *unstructured.Unstructured) bool {
+	// Assuming GVR/GVK is already matched.
+
+	for _, filter := range spec.Filters {
+		fields := []string{"spec"}
+		fields = append(fields, strings.Split(filter.Key, ".")...)
+
+		valRaw, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
+		if err != nil || !found {
+			return false
+		}
+
+		// Convert to string for consistent comparison across different numeric and string types.
+		val := fmt.Sprintf("%v", valRaw)
+
+		// very rudimentary and most certainly not to spec, but it's
+		// enough for a poc
+
+		if len(filter.ValueIn) > 0 {
+			if !slices.Contains(filter.ValueIn, val) {
+				return false
+			}
+		}
+
+		if filter.Boundary.Min != nil && *filter.Boundary.Min >= 0 {
+			numVal, err := strconv.Atoi(val)
+			if err != nil || numVal < *filter.Boundary.Min {
+				return false
+			}
+		}
+
+		if filter.Boundary.Max != nil && *filter.Boundary.Max >= 0 {
+			numVal, err := strconv.Atoi(val)
+			if err != nil || numVal > *filter.Boundary.Max {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // AcceptAPIStatus defines the observed state of AcceptAPI.
