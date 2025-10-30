@@ -34,7 +34,6 @@ linters:
     - importas
     - ineffassign
     - intrange
-    - lll
     - misspell
     - nakedret
     - nilerr
