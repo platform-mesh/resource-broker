@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: acceptapis.broker.platform-mesh.io
+  name: rdbmss.example.platform-mesh.io
 spec:
-  group: broker.platform-mesh.io
+  group: example.platform-mesh.io
   names:
-    kind: AcceptAPI
-    listKind: AcceptAPIList
-    plural: acceptapis
-    singular: acceptapi
+    kind: RDBMS
+    listKind: RDBMSList
+    plural: rdbmss
+    singular: rdbms
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AcceptAPI is the Schema for the acceptapis API.
+        description: RDBMS is the Schema for the rdbmss API.
         properties:
           apiVersion:
             description: |-
@@ -37,89 +37,27 @@ spec:
           metadata:
             type: object
           spec:
-            description: AcceptAPISpec defines the desired state of AcceptAPI.
+            description: spec defines the desired state of RDBMS
             properties:
-              filters:
-                description: Filters to select which resources of the GVR to accept.
-                items:
-                  description: Filter defines a filter to select resources.
-                  properties:
-                    boundary:
-                      description: Boundary defines a min and max boundary for numeric
-                        filtering.
-                      properties:
-                        max:
-                          type: integer
-                        min:
-                          type: integer
-                      type: object
-                    key:
-                      minLength: 1
-                      type: string
-                    valueIn:
-                      items:
-                        type: string
-                      type: array
-                  required:
-                  - key
-                  type: object
-                type: array
-              gvr:
-                description: GVR is the GroupVersionResource of the API to accept.
+              storage:
+                description: Storage defines the storage configuration for the RDBMS.
                 properties:
-                  group:
-                    type: string
-                  resource:
-                    type: string
-                  version:
-                    type: string
+                  size:
+                    description: Size is the size of the storage in GB.
+                    minimum: 1
+                    type: integer
                 required:
-                - group
-                - resource
-                - version
+                - size
                 type: object
-              relatedResources:
-                description: |-
-                  RelatedResources are resources that will be synced back from the
-                  provider to the consumer when serving a resource.
-                  The GVRs define which resources should be synced back. Which of
-                  the resources will be synced back is defined by the
-                  RelatedResourceLabel on the resources.
-                  The key must be the name of the synced resource.
-
-                  E.g.
-                    AcceptAPI for Foo
-                    Consumer creates Foo "bar"
-                    Broker syncs "bar" to provider
-                    Provider creates related Secret "baz" and sets the label RelatedResourceLabel=bar
-                    Broker sync Secret "baz" back to consumer
-                items:
-                  description: |-
-                    GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
-                    to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling
-                  properties:
-                    group:
-                      type: string
-                    resource:
-                      type: string
-                    version:
-                      type: string
-                  required:
-                  - group
-                  - resource
-                  - version
-                  type: object
-                minItems: 0
-                type: array
             required:
-            - gvr
+            - storage
             type: object
           status:
-            description: AcceptAPIStatus defines the observed state of AcceptAPI.
+            description: status defines the observed state of RDBMS
             properties:
               conditions:
                 description: |-
-                  conditions represent the current state of the AcceptAPI resource.
+                  conditions represent the current state of the RDBMS resource.
                   Each condition has a unique type and reflects the status of a specific aspect of the resource.
 
                   Standard condition types include:
@@ -187,6 +125,8 @@ spec:
                 - type
                 x-kubernetes-list-type: map
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true
