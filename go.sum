@@ -256,10 +256,10 @@ sigs.k8s.io/controller-runtime v0.22.3 h1:I7mfqz/a/WdmDCEnXmSPm8/b/yRTy6JsKKENTi
 sigs.k8s.io/controller-runtime v0.22.3/go.mod h1:+QX1XUpTXN4mLoblf4tqr5CQcyHPAki2HLXqQMY6vh8=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 h1:gBQPwqORJ8d8/YNZWEjoZs7npUVDpVXUUOFfW6CgAqE=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8/go.mod h1:mdzfpAEoE6DHQEN0uh9ZbOCuHbLK5wOm7dK4ctXE9Tg=
-sigs.k8s.io/multicluster-runtime v0.22.0-beta.0 h1:9NbjTISwohf5oLNWV96cWVISm/G4CzR8v5zOvnC/7nY=
-sigs.k8s.io/multicluster-runtime v0.22.0-beta.0/go.mod h1:4e/q1PCYE75S76Fd4nrPY3cbnj1TXjnjYfJ5ysQyaMw=
-sigs.k8s.io/multicluster-runtime/providers/file v0.22.0-beta.0 h1:bYUmViSE0iZDGp6iGeTFr5qHCyShVpw2B3AyA7H9LxM=
-sigs.k8s.io/multicluster-runtime/providers/file v0.22.0-beta.0/go.mod h1:mcYNfWzzhYStWSUSK+NZW2bRpRMBTG3aUElJd/qrO40=
+sigs.k8s.io/multicluster-runtime v0.21.0-alpha.9.0.20251007094901-9f200578a35e h1:bJIuzlDXczYYuMhBVKiMFWI7h5En6/eoJ7pI5ftHDus=
+sigs.k8s.io/multicluster-runtime v0.21.0-alpha.9.0.20251007094901-9f200578a35e/go.mod h1:4e/q1PCYE75S76Fd4nrPY3cbnj1TXjnjYfJ5ysQyaMw=
+sigs.k8s.io/multicluster-runtime/providers/file v0.21.0-alpha.9.0.20251007094901-9f200578a35e h1:FKjM6I7d9APlrbY77oRaEvMuXvQ/tsOXMvVFcSPv5iE=
+sigs.k8s.io/multicluster-runtime/providers/file v0.21.0-alpha.9.0.20251007094901-9f200578a35e/go.mod h1:BI+kQSWIrLMxry+kygu1hoXL+7yFmeUAaRsAaXTwEQA=
 sigs.k8s.io/randfill v1.0.0 h1:JfjMILfT8A6RbawdsK2JXGBR5AQVfd+9TbzrlneTyrU=
 sigs.k8s.io/randfill v1.0.0/go.mod h1:XeLlZ/jmk4i1HRopwe7/aU3H5n1zNUcX6TM94b3QxOY=
 sigs.k8s.io/structured-merge-diff/v6 v6.3.0 h1:jTijUJbW353oVOd9oTlifJqOGEkUw2jB/fXCbTiQEco=
