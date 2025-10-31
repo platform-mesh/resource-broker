@@ -63,11 +63,11 @@ _kapply "$consumers/homer.kubeconfig" ./config/crd/bases/example.platform-mesh.i
 log "Starting broker"
 # go run isn't being killed properly, instead the binary is built and
 # run
-make build
+make build || die "Failed to build manager binary"
 ./bin/manager \
     -kubeconfig "$tmpdir/platform.kubeconfig" \
-    -source-kubeconfig "$consumers" \
-    -target-kubeconfig "$providers" \
+    -consumer-kubeconfig-dir "$consumers" \
+    -provider-kubeconfig-dir "$providers" \
     -group example.platform-mesh.io \
     -kind VM \
     -version v1alpha1 \

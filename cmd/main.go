@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -47,15 +46,15 @@ import (
 var (
 	setupLog = ctrl.Log.WithName("setup")
 
-	fSourceKubeconfig = flag.String(
-		"source-kubeconfig",
+	fConsumerKubeconfig = flag.String(
+		"consumer-kubeconfig-dir",
 		"",
-		"Path(s) to the kubeconfig file for the source clusters. If not set, in-cluster config will be used.",
+		"Directory for the consumer cluster kubeconfigs. If not set, in-cluster config will be used.",
 	)
-	fTargetKubeconfig = flag.String(
-		"target-kubeconfig",
+	fProviderKubeconfig = flag.String(
+		"provider-kubeconfig-dir",
 		"",
-		"Path(s) to the kubeconfig file for the target clusters. If not set, in-cluster config will be used.",
+		"Directory for the provider cluster kubeconfigs. If not set, in-cluster config will be used.",
 	)
 	fGroup   = flag.String("group", "", "Group to watch")
 	fVersion = flag.String("version", "", "Version to watch")
@@ -171,28 +170,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	source, err := file.New(file.Options{
-		KubeconfigFiles: strings.Split(*fSourceKubeconfig, ","),
-		KubeconfigDirs:  strings.Split(*fSourceKubeconfig, ","),
+	consumer, err := file.New(file.Options{
+		KubeconfigDirs: strings.Split(*fConsumerKubeconfig, ","),
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to create source provider")
+		setupLog.Error(err, "unable to create consumer")
 		os.Exit(1)
 	}
 
-	target, err := file.New(file.Options{
-		KubeconfigFiles: strings.Split(*fTargetKubeconfig, ","),
-		KubeconfigDirs:  strings.Split(*fTargetKubeconfig, ","),
+	provider, err := file.New(file.Options{
+		KubeconfigDirs: strings.Split(*fProviderKubeconfig, ","),
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to create target provider")
+		setupLog.Error(err, "unable to create provider")
 		os.Exit(1)
 	}
 
 	mgr, err := manager.Setup(manager.Options{
 		Name: "main",
 		MgrOptions: mctrl.Options{
-			Scheme:                 scheme.Scheme,
 			Metrics:                metricsServerOptions,
 			WebhookServer:          webhookServer,
 			HealthProbeBindAddress: probeAddr,
@@ -210,10 +206,10 @@ func main() {
 			// after the manager stops then its usage might be unsafe.
 			// LeaderElectionReleaseOnCancel: true,
 		},
-		Local:   local,
-		Compute: local,
-		Source:  source,
-		Target:  target,
+		Local:    local,
+		Compute:  local,
+		Consumer: consumer,
+		Provider: provider,
 		GVKs: []schema.GroupVersionKind{
 			{
 				Group:   *fGroup,

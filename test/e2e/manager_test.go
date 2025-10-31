@@ -44,25 +44,25 @@ import (
 func TestManagerCopy(t *testing.T) {
 	t.Parallel()
 
-	t.Log("Start a source and target control plane")
-	_, sourceCfg := utils.DefaultEnvTest(t)
-	sourceCl, err := cluster.New(sourceCfg)
+	t.Log("Start a consumer and provider control plane")
+	_, consumerCfg := utils.DefaultEnvTest(t)
+	consumerCl, err := cluster.New(consumerCfg)
 	require.NoError(t, err)
 	go func() {
-		err := sourceCl.Start(t.Context())
+		err := consumerCl.Start(t.Context())
 		require.NoError(t, err)
 	}()
 
-	_, targetCfg := utils.DefaultEnvTest(t)
-	targetCl, err := cluster.New(targetCfg)
+	_, providerCfg := utils.DefaultEnvTest(t)
+	providerCl, err := cluster.New(providerCfg)
 	require.NoError(t, err)
 	go func() {
-		err := targetCl.Start(t.Context())
+		err := providerCl.Start(t.Context())
 		require.NoError(t, err)
 	}()
 
-	t.Log("Create AcceptAPI in target control plane")
-	err = targetCl.GetClient().Create(
+	t.Log("Create AcceptAPI in provider control plane")
+	err = providerCl.GetClient().Create(
 		t.Context(),
 		&brokerv1alpha1.AcceptAPI{
 			ObjectMeta: metav1.ObjectMeta{
@@ -80,15 +80,15 @@ func TestManagerCopy(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	sourceCluster := single.New("source", sourceCl)
-	targetCluster := single.New("target", targetCl)
+	consumerCluster := single.New("consumer", consumerCl)
+	providerCluster := single.New("provider", providerCl)
 
 	mgr, err := manager.Setup(manager.Options{
-		Name:    t.Name(),
-		Local:   sourceCfg,
-		Compute: sourceCfg,
-		Source:  sourceCluster,
-		Target:  targetCluster,
+		Name:     t.Name(),
+		Local:    consumerCfg,
+		Compute:  consumerCfg,
+		Consumer: consumerCluster,
+		Provider: providerCluster,
 		GVKs: []schema.GroupVersionKind{
 			{
 				Group:   "",
@@ -109,7 +109,7 @@ func TestManagerCopy(t *testing.T) {
 	cmName := "test-configmap"
 
 	t.Log("Create ConfigMap in source cluster")
-	err = sourceCl.GetClient().Create(
+	err = consumerCl.GetClient().Create(
 		t.Context(),
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -123,10 +123,10 @@ func TestManagerCopy(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	t.Log("Wait for ConfigMap to appear in target cluster")
+	t.Log("Wait for ConfigMap to appear in provider cluster")
 	require.Eventually(t, func() bool {
 		cm := &corev1.ConfigMap{}
-		err := targetCl.GetClient().Get(
+		err := providerCl.GetClient().Get(
 			t.Context(),
 			types.NamespacedName{
 				Name:      cmName,
@@ -135,7 +135,7 @@ func TestManagerCopy(t *testing.T) {
 			cm,
 		)
 		if err != nil {
-			t.Logf("error getting configmap from target cluster: %v", err)
+			t.Logf("error getting configmap from provider cluster: %v", err)
 			return false
 		}
 		return cm.Data["key"] == "value"

@@ -49,25 +49,25 @@ func TestRelatedResources(t *testing.T) {
 	// For the VM kind to be available
 	require.NoError(t, examplev1alpha1.AddToScheme(scheme.Scheme))
 
-	t.Log("Start a source and target control plane")
-	_, sourceCfg := utils.DefaultEnvTest(t)
-	sourceCl, err := cluster.New(sourceCfg)
+	t.Log("Start a consumer and provider control plane")
+	_, consumerCfg := utils.DefaultEnvTest(t)
+	consumerCl, err := cluster.New(consumerCfg)
 	require.NoError(t, err)
 	go func() {
-		err := sourceCl.Start(t.Context())
+		err := consumerCl.Start(t.Context())
 		require.NoError(t, err)
 	}()
 
-	_, targetCfg := utils.DefaultEnvTest(t)
-	targetCl, err := cluster.New(targetCfg)
+	_, providerCfg := utils.DefaultEnvTest(t)
+	providerCl, err := cluster.New(providerCfg)
 	require.NoError(t, err)
 	go func() {
-		err := targetCl.Start(t.Context())
+		err := providerCl.Start(t.Context())
 		require.NoError(t, err)
 	}()
 
-	t.Log("Create AcceptAPI in target control plane")
-	err = targetCl.GetClient().Create(
+	t.Log("Create AcceptAPI in provider control plane")
+	err = providerCl.GetClient().Create(
 		t.Context(),
 		&brokerv1alpha1.AcceptAPI{
 			ObjectMeta: metav1.ObjectMeta{
@@ -85,15 +85,15 @@ func TestRelatedResources(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	sourceCluster := single.New("source", sourceCl)
-	targetCluster := single.New("target", targetCl)
+	consumerCluster := single.New("consumer", consumerCl)
+	providerCluster := single.New("provider", providerCl)
 
 	mgr, err := manager.Setup(manager.Options{
-		Name:    t.Name(),
-		Local:   sourceCfg,
-		Compute: sourceCfg,
-		Source:  sourceCluster,
-		Target:  targetCluster,
+		Name:     t.Name(),
+		Local:    consumerCfg,
+		Compute:  consumerCfg,
+		Consumer: consumerCluster,
+		Provider: providerCluster,
 		GVKs: []schema.GroupVersionKind{
 			{
 				Group:   "example.platform-mesh.io",
@@ -113,8 +113,8 @@ func TestRelatedResources(t *testing.T) {
 	namespace := "default"
 	vmName := "test-vm"
 
-	t.Log("Create VM in source cluster")
-	err = sourceCl.GetClient().Create(
+	t.Log("Create VM in consumer cluster")
+	err = consumerCl.GetClient().Create(
 		t.Context(),
 		&examplev1alpha1.VM{
 			ObjectMeta: metav1.ObjectMeta{
@@ -129,10 +129,10 @@ func TestRelatedResources(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	t.Log("Wait for VM to appear in target cluster")
+	t.Log("Wait for VM to appear in provider cluster")
 	vm := &examplev1alpha1.VM{}
 	require.Eventually(t, func() bool {
-		err := targetCl.GetClient().Get(
+		err := providerCl.GetClient().Get(
 			t.Context(),
 			types.NamespacedName{
 				Name:      vmName,
@@ -141,17 +141,17 @@ func TestRelatedResources(t *testing.T) {
 			vm,
 		)
 		if err != nil {
-			t.Logf("error getting VM from target cluster: %v", err)
+			t.Logf("error getting VM from provider cluster: %v", err)
 			return false
 		}
 		return vm.Name == vmName
 	}, wait.ForeverTestTimeout, time.Second)
 
-	t.Log("Create related ConfigMap in target cluster")
+	t.Log("Create related ConfigMap in provider cluster")
 	cmName := "related-configmap"
 	cmKey := "related-key"
 	cmValue := "related-value"
-	err = targetCl.GetClient().Create(
+	err = providerCl.GetClient().Create(
 		t.Context(),
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -165,7 +165,7 @@ func TestRelatedResources(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	t.Log("Update RelatedResources in target cluster")
+	t.Log("Update RelatedResources in provider cluster")
 	vm.Status.RelatedResources = brokerv1alpha1.RelatedResources{
 		{
 			Namespace: namespace,
@@ -177,7 +177,7 @@ func TestRelatedResources(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, targetCl.GetClient().Status().Update(
+	require.NoError(t, providerCl.GetClient().Status().Update(
 		t.Context(),
 		vm,
 	))
@@ -185,7 +185,7 @@ func TestRelatedResources(t *testing.T) {
 	t.Log("Wait for RelatedResource ConfigMap to appear in source cluster")
 	require.Eventually(t, func() bool {
 		cm := &corev1.ConfigMap{}
-		err := sourceCl.GetClient().Get(
+		err := consumerCl.GetClient().Get(
 			t.Context(),
 			types.NamespacedName{
 				Name:      cmName,
