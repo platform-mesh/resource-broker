@@ -43,6 +43,9 @@ func init() {
 type Options struct {
 	MgrOptions mctrl.Options
 
+	// Name is a workaround because SkipNameValidation does not seem to work
+	Name string
+
 	Local          *rest.Config
 	Compute        *rest.Config
 	Source, Target multicluster.Provider
@@ -70,6 +73,7 @@ func Setup(opts Options) (mctrl.Manager, error) {
 	}
 
 	if _, err := broker.NewBroker(
+		opts.Name,
 		mgr,
 		opts.Source, opts.Target,
 		opts.GVKs...,

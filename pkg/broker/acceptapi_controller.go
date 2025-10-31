@@ -32,9 +32,9 @@ import (
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
 
-func (b *Broker) acceptAPIReconciler(mgr mctrl.Manager) error {
+func (b *Broker) acceptAPIReconciler(name string, mgr mctrl.Manager) error {
 	return mcbuilder.ControllerManagedBy(mgr).
-		Named("acceptapi").
+		Named(name + "-acceptapi").
 		For(&brokerv1alpha1.AcceptAPI{}).
 		Complete(mcreconcile.Func(b.acceptAPIReconcile))
 }

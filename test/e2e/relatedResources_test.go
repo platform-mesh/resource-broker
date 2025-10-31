@@ -89,6 +89,7 @@ func TestRelatedResources(t *testing.T) {
 	targetCluster := single.New("target", targetCl)
 
 	mgr, err := manager.Setup(manager.Options{
+		Name:    t.Name(),
 		Local:   sourceCfg,
 		Compute: sourceCfg,
 		Source:  sourceCluster,

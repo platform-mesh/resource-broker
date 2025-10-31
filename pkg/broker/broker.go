@@ -54,6 +54,7 @@ type Broker struct {
 
 // NewBroker creates a new broker that acts on the given manager.
 func NewBroker(
+	name string,
 	mgr mctrl.Manager,
 	consumer, provider multicluster.Provider,
 	gvks ...schema.GroupVersionKind,
@@ -64,12 +65,12 @@ func NewBroker(
 	b.provider = provider
 	b.apiAccepters = make(map[metav1.GroupVersionResource]map[string]map[string]*brokerv1alpha1.AcceptAPI)
 
-	if err := b.acceptAPIReconciler(mgr); err != nil {
+	if err := b.acceptAPIReconciler(name, mgr); err != nil {
 		return nil, err
 	}
 
 	for _, gvk := range gvks {
-		if err := b.genericReconciler(mgr, gvk); err != nil {
+		if err := b.genericReconciler(name, mgr, gvk); err != nil {
 			return nil, fmt.Errorf("failed to create generic reconciler for %v: %w", gvk, err)
 		}
 	}

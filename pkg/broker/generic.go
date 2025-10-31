@@ -47,7 +47,7 @@ import (
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
 
-func (b *Broker) genericReconciler(mgr mctrl.Manager, gvk schema.GroupVersionKind) error {
+func (b *Broker) genericReconciler(name string, mgr mctrl.Manager, gvk schema.GroupVersionKind) error {
 	gr := genericReconciler{
 		log:        ctrllog.Log.WithName("generic-reconciler").WithValues("gvk", gvk),
 		gvk:        gvk,
@@ -84,7 +84,7 @@ func (b *Broker) genericReconciler(mgr mctrl.Manager, gvk schema.GroupVersionKin
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
 	return mcbuilder.ControllerManagedBy(mgr).
-		Named("generic-" + gvk.String()).
+		Named(name + "-generic-" + gvk.String()).
 		For(obj).
 		Complete(&gr)
 }
