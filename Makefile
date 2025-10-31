@@ -66,12 +66,12 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet ## Run tests.
-	go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out $(TEST_ARGS)
 
 .PHONY: test-e2e
 test-e2e: manifests generate fmt vet setup-envtest ## Run the e2e tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-		go test ./test/e2e/...
+		go test ./test/e2e/... $(TEST_ARGS)
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter

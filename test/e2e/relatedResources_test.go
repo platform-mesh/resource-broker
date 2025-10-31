@@ -29,20 +29,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 
 	"sigs.k8s.io/multicluster-runtime/providers/single"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
+	examplev1alpha1 "github.com/platform-mesh/resource-broker/api/example/v1alpha1"
 	"github.com/platform-mesh/resource-broker/cmd/manager"
 	"github.com/platform-mesh/resource-broker/test/utils"
 )
 
-// TestManagerCopy only tests that the manager can copy from a source to
-// a destination cluster.
-func TestManagerCopy(t *testing.T) {
+// TestRelatedResources tests that related resources are copied from
+// target to source cluster.
+func TestRelatedResources(t *testing.T) {
 	t.Parallel()
+
+	// For the VM kind to be available
+	require.NoError(t, examplev1alpha1.AddToScheme(scheme.Scheme))
 
 	t.Log("Start a source and target control plane")
 	_, sourceCfg := utils.DefaultEnvTest(t)
@@ -66,14 +71,14 @@ func TestManagerCopy(t *testing.T) {
 		t.Context(),
 		&brokerv1alpha1.AcceptAPI{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "accept-configmaps",
+				Name:      "accept-vms",
 				Namespace: "default",
 			},
 			Spec: brokerv1alpha1.AcceptAPISpec{
 				GVR: metav1.GroupVersionResource{
-					Group:    "",
-					Version:  "v1",
-					Resource: "configmaps",
+					Group:    "example.platform-mesh.io",
+					Version:  "v1alpha1",
+					Resource: "vms",
 				},
 			},
 		},
@@ -91,9 +96,9 @@ func TestManagerCopy(t *testing.T) {
 		Target:  targetCluster,
 		GVKs: []schema.GroupVersionKind{
 			{
-				Group:   "",
-				Version: "v1",
-				Kind:    "ConfigMap",
+				Group:   "example.platform-mesh.io",
+				Version: "v1alpha1",
+				Kind:    "VM",
 			},
 		},
 		MgrOptions: ManagerOptions(),
@@ -106,10 +111,47 @@ func TestManagerCopy(t *testing.T) {
 	}()
 
 	namespace := "default"
-	cmName := "test-configmap"
+	vmName := "test-vm"
 
-	t.Log("Create ConfigMap in source cluster")
+	t.Log("Create VM in source cluster")
 	err = sourceCl.GetClient().Create(
+		t.Context(),
+		&examplev1alpha1.VM{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      vmName,
+				Namespace: namespace,
+			},
+			Spec: examplev1alpha1.VMSpec{
+				Arch:   "x86_64",
+				Memory: 512,
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	t.Log("Wait for VM to appear in target cluster")
+	vm := &examplev1alpha1.VM{}
+	require.Eventually(t, func() bool {
+		err := targetCl.GetClient().Get(
+			t.Context(),
+			types.NamespacedName{
+				Name:      vmName,
+				Namespace: namespace,
+			},
+			vm,
+		)
+		if err != nil {
+			t.Logf("error getting VM from target cluster: %v", err)
+			return false
+		}
+		return vm.Name == vmName
+	}, wait.ForeverTestTimeout, time.Second)
+
+	t.Log("Create related ConfigMap in target cluster")
+	cmName := "related-configmap"
+	cmKey := "related-key"
+	cmValue := "related-value"
+	err = targetCl.GetClient().Create(
 		t.Context(),
 		&corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -117,16 +159,33 @@ func TestManagerCopy(t *testing.T) {
 				Namespace: namespace,
 			},
 			Data: map[string]string{
-				"key": "value",
+				cmKey: cmValue,
 			},
 		},
 	)
 	require.NoError(t, err)
 
-	t.Log("Wait for ConfigMap to appear in target cluster")
+	t.Log("Update RelatedResources in target cluster")
+	vm.Status.RelatedResources = brokerv1alpha1.RelatedResources{
+		{
+			Namespace: namespace,
+			Name:      cmName,
+			GVK: metav1.GroupVersionKind{
+				Group:   "",
+				Version: "v1",
+				Kind:    "ConfigMap",
+			},
+		},
+	}
+	require.NoError(t, targetCl.GetClient().Status().Update(
+		t.Context(),
+		vm,
+	))
+
+	t.Log("Wait for RelatedResource ConfigMap to appear in source cluster")
 	require.Eventually(t, func() bool {
 		cm := &corev1.ConfigMap{}
-		err := targetCl.GetClient().Get(
+		err := sourceCl.GetClient().Get(
 			t.Context(),
 			types.NamespacedName{
 				Name:      cmName,
@@ -135,9 +194,9 @@ func TestManagerCopy(t *testing.T) {
 			cm,
 		)
 		if err != nil {
-			t.Logf("error getting configmap from target cluster: %v", err)
+			t.Logf("error getting related configmap from source cluster: %v", err)
 			return false
 		}
-		return cm.Data["key"] == "value"
+		return cm.Data[cmKey] == cmValue
 	}, wait.ForeverTestTimeout, time.Second)
 }

@@ -122,6 +122,39 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              relatedResources:
+                description: RelatedResources lists resources related to this VM.
+                items:
+                  description: |-
+                    RelatedResource defines references to related resources.
+                    It should be embedded in the status of resources that should be
+                    synchronized by the generic reconciler.
+                  properties:
+                    gvk:
+                      description: |-
+                        GroupVersionKind unambiguously identifies a kind.  It doesn't anonymously include GroupVersion
+                        to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling
+                      properties:
+                        group:
+                          type: string
+                        kind:
+                          type: string
+                        version:
+                          type: string
+                      required:
+                      - group
+                      - kind
+                      - version
+                      type: object
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - gvk
+                  - name
+                  type: object
+                type: array
             type: object
         required:
         - spec

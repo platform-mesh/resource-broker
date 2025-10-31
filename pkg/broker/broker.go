@@ -25,14 +25,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
+)
+
+const (
+	// ConsumerPrefix is the prefix expected for consumer clusters.
+	ConsumerPrefix = "consumer"
+	// ProviderPrefix is the prefix expected for provider clusters.
+	ProviderPrefix = "provider"
 )
 
 // Broker brokers API resources to clusters that have accepted given
 // APIs.
 type Broker struct {
 	mgr mctrl.Manager
+
+	consumer, provider multicluster.Provider
 
 	lock sync.RWMutex
 
@@ -43,17 +53,24 @@ type Broker struct {
 }
 
 // NewBroker creates a new broker that acts on the given manager.
-func NewBroker(mgr mctrl.Manager, gvks ...schema.GroupVersionKind) (*Broker, error) {
+func NewBroker(
+	name string,
+	mgr mctrl.Manager,
+	consumer, provider multicluster.Provider,
+	gvks ...schema.GroupVersionKind,
+) (*Broker, error) {
 	b := new(Broker)
 	b.mgr = mgr
+	b.consumer = consumer
+	b.provider = provider
 	b.apiAccepters = make(map[metav1.GroupVersionResource]map[string]map[string]*brokerv1alpha1.AcceptAPI)
 
-	if err := b.acceptAPIReconciler(mgr); err != nil {
+	if err := b.acceptAPIReconciler(name, mgr); err != nil {
 		return nil, err
 	}
 
 	for _, gvk := range gvks {
-		if err := b.genericReconciler(mgr, gvk); err != nil {
+		if err := b.genericReconciler(name, mgr, gvk); err != nil {
 			return nil, fmt.Errorf("failed to create generic reconciler for %v: %w", gvk, err)
 		}
 	}

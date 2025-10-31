@@ -190,6 +190,7 @@ func main() {
 	}
 
 	mgr, err := manager.Setup(manager.Options{
+		Name: "main",
 		MgrOptions: mctrl.Options{
 			Scheme:                 scheme.Scheme,
 			Metrics:                metricsServerOptions,
