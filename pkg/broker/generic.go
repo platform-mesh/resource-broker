@@ -106,7 +106,7 @@ type genericReconciler struct {
 
 //nolint:gocyclo // cyclomatic complexity is high, refactor when time allows
 func (gr *genericReconciler) Reconcile(ctx context.Context, req mcreconcile.Request) (mctrl.Result, error) {
-	log := ctrllog.FromContext(ctx).WithValues("consumer", req.ClusterName)
+	log := ctrllog.FromContext(ctx)
 	log.Info("Reconciling generic resource")
 
 	var consumerName, providerName string

@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
-	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
@@ -42,8 +41,6 @@ const (
 type Broker struct {
 	mgr mctrl.Manager
 
-	consumer, provider multicluster.Provider
-
 	lock sync.RWMutex
 
 	// apiAccepters maps GVRs to the names of clusters that accept
@@ -56,13 +53,10 @@ type Broker struct {
 func NewBroker(
 	name string,
 	mgr mctrl.Manager,
-	consumer, provider multicluster.Provider,
 	gvks ...schema.GroupVersionKind,
 ) (*Broker, error) {
 	b := new(Broker)
 	b.mgr = mgr
-	b.consumer = consumer
-	b.provider = provider
 	b.apiAccepters = make(map[metav1.GroupVersionResource]map[string]map[string]*brokerv1alpha1.AcceptAPI)
 
 	if err := b.acceptAPIReconciler(name, mgr); err != nil {
