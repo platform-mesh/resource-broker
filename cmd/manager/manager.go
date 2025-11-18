@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
@@ -34,14 +33,8 @@ import (
 	"sigs.k8s.io/multicluster-runtime/providers/multi"
 	"sigs.k8s.io/multicluster-runtime/providers/single"
 
-	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/broker"
 )
-
-func init() {
-	utilruntime.Must(brokerv1alpha1.AddToScheme(scheme.Scheme))
-	// +kubebuilder:scaffold:scheme
-}
 
 // Options are the options for setting up the manager.
 type Options struct {

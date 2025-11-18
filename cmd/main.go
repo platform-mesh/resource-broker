@@ -24,10 +24,12 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -37,6 +39,7 @@ import (
 	mctrl "sigs.k8s.io/multicluster-runtime"
 	"sigs.k8s.io/multicluster-runtime/providers/file"
 
+	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"github.com/platform-mesh/resource-broker/cmd/manager"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -221,8 +224,20 @@ func main() {
 		}
 	}
 
+	scheme := runtime.NewScheme()
+	if err := brokerv1alpha1.AddToScheme(scheme); err != nil {
+		setupLog.Error(err, "unable to add brokerv1alpha1 to scheme")
+		os.Exit(1)
+	}
+	// +kubebuilder:scaffold:scheme
+
 	consumer, err := file.New(file.Options{
 		KubeconfigDirs: strings.Split(*fConsumerKubeconfig, ","),
+		ClusterOptions: []cluster.Option{
+			func(o *cluster.Options) {
+				o.Scheme = scheme
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to create consumer")
@@ -231,6 +246,11 @@ func main() {
 
 	provider, err := file.New(file.Options{
 		KubeconfigDirs: strings.Split(*fProviderKubeconfig, ","),
+		ClusterOptions: []cluster.Option{
+			func(o *cluster.Options) {
+				o.Scheme = scheme
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to create provider")
