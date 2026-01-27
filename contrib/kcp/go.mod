@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/platform-mesh/resource-broker => ../..
 
 replace (
-	github.com/kcp-dev/multicluster-provider => github.com/ntnn/kcp-multicluster-provider v0.2.1-0.20251122072304-af156fd0bff4
+	github.com/kcp-dev/multicluster-provider => github.com/ntnn/kcp-multicluster-provider v0.1.1-0.20250607083457-9c638a4a0047
 	sigs.k8s.io/multicluster-runtime => github.com/ntnn/multicluster-runtime v0.22.0-beta.0.0.20251121153941-46711615601c
 )
 
