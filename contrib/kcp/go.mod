@@ -12,7 +12,7 @@ replace (
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/kcp-dev/kcp/sdk v0.28.3
-	github.com/kcp-dev/multicluster-provider v0.2.1-0.20251118100752-8e6061e3e371
+	github.com/kcp-dev/multicluster-provider v0.4.0
 	github.com/platform-mesh/resource-broker v0.0.0-00010101000000-000000000000
 	golang.org/x/sync v0.19.0
 	k8s.io/api v0.34.2
