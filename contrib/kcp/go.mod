@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/kcp-dev/multicluster-provider v0.4.0
 	github.com/kcp-dev/sdk v0.29.0
-	github.com/platform-mesh/resource-broker v0.0.0-00010101000000-000000000000
+	github.com/platform-mesh/resource-broker v0.0.0-20260128231640-fa2dbc59d354
 	golang.org/x/sync v0.19.0
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
