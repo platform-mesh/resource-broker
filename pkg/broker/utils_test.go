@@ -25,6 +25,8 @@ import (
 )
 
 func TestSplitGroupsCore(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		input          []string
 		expectedGroups []string
@@ -59,6 +61,8 @@ func TestSplitGroupsCore(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			groups, core := SplitGroupsCore(tc.input)
 			assert.Equal(t, tc.expectedGroups, groups)
 			assert.Equal(t, tc.expectedCore, core)
@@ -67,6 +71,8 @@ func TestSplitGroupsCore(t *testing.T) {
 }
 
 func TestParseKind(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		input           string
 		expectedGroup   string
@@ -95,6 +101,8 @@ func TestParseKind(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			gvk := ParseKind(tc.input)
 			assert.Equal(t, tc.expectedGroup, gvk.Group)
 			assert.Equal(t, tc.expectedVersion, gvk.Version)
@@ -104,7 +112,11 @@ func TestParseKind(t *testing.T) {
 }
 
 func TestParseKinds(t *testing.T) {
+	t.Parallel()
+
 	t.Run("multiple kinds", func(t *testing.T) {
+		t.Parallel()
+
 		kinds := []string{
 			"ConfigMap.v1.core",
 			"Certificate.v1alpha1.example.platform-mesh.io",
@@ -123,6 +135,8 @@ func TestParseKinds(t *testing.T) {
 	})
 
 	t.Run("empty slice", func(t *testing.T) {
+		t.Parallel()
+
 		kinds := []string{}
 		gvks := ParseKinds(kinds)
 
@@ -130,6 +144,8 @@ func TestParseKinds(t *testing.T) {
 	})
 
 	t.Run("nil slice", func(t *testing.T) {
+		t.Parallel()
+
 		gvks := ParseKinds(nil)
 
 		assert.Empty(t, gvks)
@@ -137,7 +153,11 @@ func TestParseKinds(t *testing.T) {
 }
 
 func TestFilterAPIResources(t *testing.T) {
+	t.Parallel()
+
 	t.Run("filters by groups", func(t *testing.T) {
+		t.Parallel()
+
 		apiResourceLists := []*metav1.APIResourceList{
 			{
 				GroupVersion: "example.platform-mesh.io/v1alpha1",
@@ -188,6 +208,8 @@ func TestFilterAPIResources(t *testing.T) {
 	})
 
 	t.Run("filters by core resources", func(t *testing.T) {
+		t.Parallel()
+
 		apiResourceLists := []*metav1.APIResourceList{
 			{
 				GroupVersion: "v1",
@@ -227,6 +249,8 @@ func TestFilterAPIResources(t *testing.T) {
 	})
 
 	t.Run("skips subresources", func(t *testing.T) {
+		t.Parallel()
+
 		apiResourceLists := []*metav1.APIResourceList{
 			{
 				GroupVersion: "apps/v1",
@@ -267,6 +291,8 @@ func TestFilterAPIResources(t *testing.T) {
 	})
 
 	t.Run("handles mixed groups and core resources", func(t *testing.T) {
+		t.Parallel()
+
 		apiResourceLists := []*metav1.APIResourceList{
 			{
 				GroupVersion: "v1",
@@ -324,6 +350,8 @@ func TestFilterAPIResources(t *testing.T) {
 	})
 
 	t.Run("empty input", func(t *testing.T) {
+		t.Parallel()
+
 		apiResourceLists := []*metav1.APIResourceList{}
 		groups := []string{}
 		coreResources := []string{}
@@ -334,6 +362,8 @@ func TestFilterAPIResources(t *testing.T) {
 	})
 
 	t.Run("no matching resources", func(t *testing.T) {
+		t.Parallel()
+
 		apiResourceLists := []*metav1.APIResourceList{
 			{
 				GroupVersion: "apps/v1",

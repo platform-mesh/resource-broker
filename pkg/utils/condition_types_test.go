@@ -24,11 +24,17 @@ import (
 )
 
 func TestConditionTypeString(t *testing.T) {
+	t.Parallel()
+
 	t.Run("ConditionResourceCopied", func(t *testing.T) {
+		t.Parallel()
+
 		assert.Equal(t, "Copied", ConditionResourceCopied.String())
 	})
 
 	t.Run("ConditionStatusSynced", func(t *testing.T) {
+		t.Parallel()
+
 		assert.Equal(t, "StatusSynced", ConditionStatusSynced.String())
 	})
 }

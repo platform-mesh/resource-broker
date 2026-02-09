@@ -28,7 +28,11 @@ import (
 )
 
 func TestStripClusterMetadata(t *testing.T) {
+	t.Parallel()
+
 	t.Run("removes cluster-specific metadata fields", func(t *testing.T) {
+		t.Parallel()
+
 		obj := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -92,6 +96,8 @@ func TestStripClusterMetadata(t *testing.T) {
 	})
 
 	t.Run("does not modify original object", func(t *testing.T) {
+		t.Parallel()
+
 		obj := &unstructured.Unstructured{
 			Object: map[string]any{
 				"metadata": map[string]any{
@@ -116,6 +122,8 @@ func TestStripClusterMetadata(t *testing.T) {
 	})
 
 	t.Run("handles object without metadata", func(t *testing.T) {
+		t.Parallel()
+
 		obj := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -129,7 +137,11 @@ func TestStripClusterMetadata(t *testing.T) {
 }
 
 func TestEqualObjects(t *testing.T) {
+	t.Parallel()
+
 	t.Run("equal objects", func(t *testing.T) {
+		t.Parallel()
+
 		a := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -163,6 +175,8 @@ func TestEqualObjects(t *testing.T) {
 	})
 
 	t.Run("different objects", func(t *testing.T) {
+		t.Parallel()
+
 		a := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -190,6 +204,8 @@ func TestEqualObjects(t *testing.T) {
 	})
 
 	t.Run("ignores metadata differences", func(t *testing.T) {
+		t.Parallel()
+
 		a := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -233,6 +249,8 @@ func TestEqualObjects(t *testing.T) {
 	})
 
 	t.Run("ignores status differences", func(t *testing.T) {
+		t.Parallel()
+
 		a := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -262,6 +280,8 @@ func TestEqualObjects(t *testing.T) {
 	})
 
 	t.Run("detects field presence difference", func(t *testing.T) {
+		t.Parallel()
+
 		a := &unstructured.Unstructured{
 			Object: map[string]any{
 				"apiVersion": "v1",
@@ -286,7 +306,11 @@ func TestEqualObjects(t *testing.T) {
 }
 
 func TestMakeCond(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates condition with true status", func(t *testing.T) {
+		t.Parallel()
+
 		cond := makeCond(ConditionResourceCopied, true, "Success", "Resource copied successfully")
 
 		assert.Equal(t, "Copied", cond.Type)
@@ -296,6 +320,8 @@ func TestMakeCond(t *testing.T) {
 	})
 
 	t.Run("creates condition with false status", func(t *testing.T) {
+		t.Parallel()
+
 		cond := makeCond(ConditionStatusSynced, false, "Failed", "Status sync failed")
 
 		assert.Equal(t, "StatusSynced", cond.Type)

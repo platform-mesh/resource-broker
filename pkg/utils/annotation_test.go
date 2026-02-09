@@ -27,7 +27,11 @@ import (
 )
 
 func TestSetAnnotation(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nil annotations", func(t *testing.T) {
+		t.Parallel()
+
 		obj := &unstructured.Unstructured{}
 		SetAnnotation(obj, "test-key", "test-value")
 
@@ -37,6 +41,8 @@ func TestSetAnnotation(t *testing.T) {
 	})
 
 	t.Run("existing annotations", func(t *testing.T) {
+		t.Parallel()
+
 		obj := &unstructured.Unstructured{}
 		obj.SetAnnotations(map[string]string{
 			"existing-key": "existing-value",
@@ -50,6 +56,8 @@ func TestSetAnnotation(t *testing.T) {
 	})
 
 	t.Run("overwrite existing annotation", func(t *testing.T) {
+		t.Parallel()
+
 		obj := &unstructured.Unstructured{}
 		obj.SetAnnotations(map[string]string{
 			"test-key": "old-value",

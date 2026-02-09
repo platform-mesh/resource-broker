@@ -26,9 +26,13 @@ import (
 )
 
 func TestUpdateConditions(t *testing.T) {
+	t.Parallel()
+
 	now := metav1.Now()
 
 	t.Run("adds new condition", func(t *testing.T) {
+		t.Parallel()
+
 		conditions := &[]metav1.Condition{}
 		newConditions := []metav1.Condition{
 			{
@@ -49,6 +53,8 @@ func TestUpdateConditions(t *testing.T) {
 	})
 
 	t.Run("updates existing condition with status change", func(t *testing.T) {
+		t.Parallel()
+
 		oldTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
 		conditions := &[]metav1.Condition{
 			{
@@ -80,6 +86,8 @@ func TestUpdateConditions(t *testing.T) {
 	})
 
 	t.Run("no update when condition is unchanged", func(t *testing.T) {
+		t.Parallel()
+
 		conditions := &[]metav1.Condition{
 			{
 				Type:               "Ready",
@@ -106,6 +114,8 @@ func TestUpdateConditions(t *testing.T) {
 	})
 
 	t.Run("updates multiple conditions", func(t *testing.T) {
+		t.Parallel()
+
 		conditions := &[]metav1.Condition{}
 		newConditions := []metav1.Condition{
 			{
@@ -131,6 +141,8 @@ func TestUpdateConditions(t *testing.T) {
 	})
 
 	t.Run("updates some conditions", func(t *testing.T) {
+		t.Parallel()
+
 		oldTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
 		conditions := &[]metav1.Condition{
 			{
@@ -176,6 +188,8 @@ func TestUpdateConditions(t *testing.T) {
 	})
 
 	t.Run("empty new conditions", func(t *testing.T) {
+		t.Parallel()
+
 		conditions := &[]metav1.Condition{
 			{
 				Type:               "Ready",
@@ -194,6 +208,8 @@ func TestUpdateConditions(t *testing.T) {
 	})
 
 	t.Run("nil new conditions", func(t *testing.T) {
+		t.Parallel()
+
 		conditions := &[]metav1.Condition{
 			{
 				Type:               "Ready",
