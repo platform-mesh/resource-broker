@@ -25,32 +25,32 @@ import (
 
 func TestSplitGroupsCore(t *testing.T) {
 	tests := map[string]struct {
-		input         []string
+		input          []string
 		expectedGroups []string
 		expectedCore   []string
 	}{
 		"only core resources": {
-			input:         []string{"secrets.core", "configmaps.core"},
+			input:          []string{"secrets.core", "configmaps.core"},
 			expectedGroups: []string{},
 			expectedCore:   []string{"secrets", "configmaps"},
 		},
 		"only regular groups": {
-			input:         []string{"example.platform-mesh.io", "custom.group.io"},
+			input:          []string{"example.platform-mesh.io", "custom.group.io"},
 			expectedGroups: []string{"example.platform-mesh.io", "custom.group.io"},
 			expectedCore:   []string{},
 		},
 		"mixed core and regular groups": {
-			input:         []string{"example.platform-mesh.io", "secrets.core", "custom.group.io"},
+			input:          []string{"example.platform-mesh.io", "secrets.core", "custom.group.io"},
 			expectedGroups: []string{"example.platform-mesh.io", "custom.group.io"},
 			expectedCore:   []string{"secrets"},
 		},
 		"empty input": {
-			input:         []string{},
+			input:          []string{},
 			expectedGroups: []string{},
 			expectedCore:   []string{},
 		},
 		"nil input": {
-			input:         nil,
+			input:          nil,
 			expectedGroups: []string{},
 			expectedCore:   []string{},
 		},
