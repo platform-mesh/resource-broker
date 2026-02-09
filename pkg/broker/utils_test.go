@@ -24,70 +24,82 @@ import (
 )
 
 func TestSplitGroupsCore(t *testing.T) {
-	t.Run("only core resources", func(t *testing.T) {
-		input := []string{"secrets.core", "configmaps.core"}
-		groups, core := SplitGroupsCore(input)
+	tests := map[string]struct {
+		input         []string
+		expectedGroups []string
+		expectedCore   []string
+	}{
+		"only core resources": {
+			input:         []string{"secrets.core", "configmaps.core"},
+			expectedGroups: []string{},
+			expectedCore:   []string{"secrets", "configmaps"},
+		},
+		"only regular groups": {
+			input:         []string{"example.platform-mesh.io", "custom.group.io"},
+			expectedGroups: []string{"example.platform-mesh.io", "custom.group.io"},
+			expectedCore:   []string{},
+		},
+		"mixed core and regular groups": {
+			input:         []string{"example.platform-mesh.io", "secrets.core", "custom.group.io"},
+			expectedGroups: []string{"example.platform-mesh.io", "custom.group.io"},
+			expectedCore:   []string{"secrets"},
+		},
+		"empty input": {
+			input:         []string{},
+			expectedGroups: []string{},
+			expectedCore:   []string{},
+		},
+		"nil input": {
+			input:         nil,
+			expectedGroups: []string{},
+			expectedCore:   []string{},
+		},
+	}
 
-		assert.Empty(t, groups)
-		assert.Equal(t, []string{"secrets", "configmaps"}, core)
-	})
-
-	t.Run("only regular groups", func(t *testing.T) {
-		input := []string{"example.platform-mesh.io", "custom.group.io"}
-		groups, core := SplitGroupsCore(input)
-
-		assert.Equal(t, []string{"example.platform-mesh.io", "custom.group.io"}, groups)
-		assert.Empty(t, core)
-	})
-
-	t.Run("mixed core and regular groups", func(t *testing.T) {
-		input := []string{"example.platform-mesh.io", "secrets.core", "custom.group.io"}
-		groups, core := SplitGroupsCore(input)
-
-		assert.Equal(t, []string{"example.platform-mesh.io", "custom.group.io"}, groups)
-		assert.Equal(t, []string{"secrets"}, core)
-	})
-
-	t.Run("empty input", func(t *testing.T) {
-		input := []string{}
-		groups, core := SplitGroupsCore(input)
-
-		assert.Empty(t, groups)
-		assert.Empty(t, core)
-	})
-
-	t.Run("nil input", func(t *testing.T) {
-		groups, core := SplitGroupsCore(nil)
-
-		assert.Empty(t, groups)
-		assert.Empty(t, core)
-	})
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			groups, core := SplitGroupsCore(tc.input)
+			assert.Equal(t, tc.expectedGroups, groups)
+			assert.Equal(t, tc.expectedCore, core)
+		})
+	}
 }
 
 func TestParseKind(t *testing.T) {
-	t.Run("core resource", func(t *testing.T) {
-		gvk := ParseKind("ConfigMap.v1.core")
+	tests := map[string]struct {
+		input           string
+		expectedGroup   string
+		expectedVersion string
+		expectedKind    string
+	}{
+		"core resource": {
+			input:           "ConfigMap.v1.core",
+			expectedGroup:   "",
+			expectedVersion: "v1",
+			expectedKind:    "ConfigMap",
+		},
+		"custom resource": {
+			input:           "Certificate.v1alpha1.example.platform-mesh.io",
+			expectedGroup:   "example.platform-mesh.io",
+			expectedVersion: "v1alpha1",
+			expectedKind:    "Certificate",
+		},
+		"standard resource with dots in group": {
+			input:           "Deployment.v1.apps",
+			expectedGroup:   "apps",
+			expectedVersion: "v1",
+			expectedKind:    "Deployment",
+		},
+	}
 
-		assert.Equal(t, "", gvk.Group)
-		assert.Equal(t, "v1", gvk.Version)
-		assert.Equal(t, "ConfigMap", gvk.Kind)
-	})
-
-	t.Run("custom resource", func(t *testing.T) {
-		gvk := ParseKind("Certificate.v1alpha1.example.platform-mesh.io")
-
-		assert.Equal(t, "example.platform-mesh.io", gvk.Group)
-		assert.Equal(t, "v1alpha1", gvk.Version)
-		assert.Equal(t, "Certificate", gvk.Kind)
-	})
-
-	t.Run("standard resource with dots in group", func(t *testing.T) {
-		gvk := ParseKind("Deployment.v1.apps")
-
-		assert.Equal(t, "apps", gvk.Group)
-		assert.Equal(t, "v1", gvk.Version)
-		assert.Equal(t, "Deployment", gvk.Kind)
-	})
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			gvk := ParseKind(tc.input)
+			assert.Equal(t, tc.expectedGroup, gvk.Group)
+			assert.Equal(t, tc.expectedVersion, gvk.Version)
+			assert.Equal(t, tc.expectedKind, gvk.Kind)
+		})
+	}
 }
 
 func TestParseKinds(t *testing.T) {
@@ -262,6 +274,10 @@ func TestFilterAPIResources(t *testing.T) {
 						Name: "configmaps",
 						Kind: "ConfigMap",
 					},
+					{
+						Name: "pods",
+						Kind: "Pod",
+					},
 				},
 			},
 			{
@@ -272,6 +288,17 @@ func TestFilterAPIResources(t *testing.T) {
 						Kind:    "Certificate",
 						Group:   "example.platform-mesh.io",
 						Version: "v1alpha1",
+					},
+				},
+			},
+			{
+				GroupVersion: "apps/v1",
+				APIResources: []metav1.APIResource{
+					{
+						Name:    "deployments",
+						Kind:    "Deployment",
+						Group:   "apps",
+						Version: "v1",
 					},
 				},
 			},

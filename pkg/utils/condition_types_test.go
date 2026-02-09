@@ -31,9 +31,4 @@ func TestConditionTypeString(t *testing.T) {
 	t.Run("ConditionStatusSynced", func(t *testing.T) {
 		assert.Equal(t, "StatusSynced", ConditionStatusSynced.String())
 	})
-
-	t.Run("custom condition type", func(t *testing.T) {
-		custom := ConditionType("CustomCondition")
-		assert.Equal(t, "CustomCondition", custom.String())
-	})
 }

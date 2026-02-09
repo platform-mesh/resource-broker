@@ -29,32 +29,32 @@ import (
 func TestStripClusterMetadata(t *testing.T) {
 	t.Run("removes cluster-specific metadata fields", func(t *testing.T) {
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test-cm",
 					"namespace":         "test-ns",
 					"resourceVersion":   "12345",
 					"uid":               "abc-123",
 					"creationTimestamp": "2024-01-01T00:00:00Z",
-					"managedFields":     []interface{}{},
+					"managedFields":     []any{},
 					"generation":        int64(1),
-					"ownerReferences":   []interface{}{},
-					"finalizers":        []interface{}{"test-finalizer"},
-					"annotations": map[string]interface{}{
+					"ownerReferences":   []any{},
+					"finalizers":        []any{"test-finalizer"},
+					"annotations": map[string]any{
 						"test": "annotation",
 					},
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"test": "label",
 					},
 				},
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value",
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			},
@@ -67,7 +67,7 @@ func TestStripClusterMetadata(t *testing.T) {
 		assert.False(t, hasStatus, "status should be removed")
 
 		// Check metadata fields are removed
-		metadata, ok := stripped.Object["metadata"].(map[string]interface{})
+		metadata, ok := stripped.Object["metadata"].(map[string]any)
 		require.True(t, ok, "metadata should exist")
 
 		assert.NotContains(t, metadata, "resourceVersion")
@@ -92,12 +92,12 @@ func TestStripClusterMetadata(t *testing.T) {
 
 	t.Run("does not modify original object", func(t *testing.T) {
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"metadata": map[string]interface{}{
+			Object: map[string]any{
+				"metadata": map[string]any{
 					"name":            "test",
 					"resourceVersion": "123",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			},
@@ -116,7 +116,7 @@ func TestStripClusterMetadata(t *testing.T) {
 
 	t.Run("handles object without metadata", func(t *testing.T) {
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
 			},
@@ -130,28 +130,28 @@ func TestStripClusterMetadata(t *testing.T) {
 func TestEqualObjects(t *testing.T) {
 	t.Run("equal objects", func(t *testing.T) {
 		a := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name": "test-cm",
 				},
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value",
 					},
 				},
 			},
 		}
 		b := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name": "test-cm",
 				},
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value",
 					},
 				},
@@ -163,22 +163,22 @@ func TestEqualObjects(t *testing.T) {
 
 	t.Run("different objects", func(t *testing.T) {
 		a := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value1",
 					},
 				},
 			},
 		}
 		b := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value2",
 					},
 				},
@@ -190,38 +190,38 @@ func TestEqualObjects(t *testing.T) {
 
 	t.Run("ignores metadata differences", func(t *testing.T) {
 		a := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":            "test-cm",
 					"resourceVersion": "123",
 					"uid":             "abc-123",
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"app": "test",
 					},
 				},
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value",
 					},
 				},
 			},
 		}
 		b := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":            "test-cm",
 					"resourceVersion": "456",
 					"uid":             "xyz-789",
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"app": "different",
 					},
 				},
-				"spec": map[string]interface{}{
-					"data": map[string]interface{}{
+				"spec": map[string]any{
+					"data": map[string]any{
 						"key": "value",
 					},
 				},
@@ -233,25 +233,25 @@ func TestEqualObjects(t *testing.T) {
 
 	t.Run("ignores status differences", func(t *testing.T) {
 		a := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Pod",
-				"spec": map[string]interface{}{
-					"containers": []interface{}{},
+				"spec": map[string]any{
+					"containers": []any{},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			},
 		}
 		b := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Pod",
-				"spec": map[string]interface{}{
-					"containers": []interface{}{},
+				"spec": map[string]any{
+					"containers": []any{},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"phase": "Pending",
 				},
 			},
@@ -262,19 +262,19 @@ func TestEqualObjects(t *testing.T) {
 
 	t.Run("detects field presence difference", func(t *testing.T) {
 		a := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"replicas": int64(3),
 				},
 			},
 		}
 		b := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "ConfigMap",
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"replicas": int64(5),
 				},
 			},
