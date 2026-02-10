@@ -44,7 +44,10 @@ _setup() {
 _start_broker() {
     log "Starting broker"
 
-    make docker-build docker-build-operator || die "Failed to build docker images"
+    if [[ -z "$CI" ]]; then
+        make docker-build docker-build-operator || die "Failed to build docker images"
+    fi
+
     make kind-load kind-load-operator KIND_CLUSTER=broker-platform \
         || die "Failed to load images into kind cluster"
     make deploy-operator KUBECONFIG="$kind_platform" || die "Failed to deploy resource-broker-operator"

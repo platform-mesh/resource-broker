@@ -59,10 +59,12 @@ The resource-broker caches these and uses them to route requests.
 
 <!--
 ```bash ci
-_ci() {
-    ./examples/certs/run.bash ci
-}
-trap _ci EXIT
+if [[ -n "$CI" ]]; then
+    _ci() {
+        ./examples/certs/run.bash ci
+    }
+    trap _ci EXIT
+fi
 ```
 -->
 
