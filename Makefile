@@ -86,6 +86,16 @@ test-e2e: manifests generate fmt vet setup-envtest ## Run the e2e tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 		go test ./test/e2e/... -coverprofile cover-e2e.out $(TEST_ARGS)
 
+EXAMPLES ?= $(patsubst examples/%,%,$(wildcard examples/*))
+EXAMPLES_PREFIX ?= $(patsubst %,example-%,$(EXAMPLES))
+
+.PHONY: examples
+examples: $(EXAMPLES_PREFIX) ## Run the examples.
+example-%: manifests generate fmt vet
+	go run github.com/ntnn/mdextract/cmd/mdextract@main -output run.bash -tags bash,ci ./examples/$*/README.md \
+		&& trap 'rm -f run.bash' EXIT \
+		&& bash -xe ./run.bash
+
 GOLANGCI_LINT_CONFIG ?= $(PWD)/.golangci.yml
 
 .PHONY: lint

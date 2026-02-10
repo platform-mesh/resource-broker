@@ -27,3 +27,8 @@ go.work
 *~
 
 *.kubeconfig
+
+# ignore output from examples
+/*.yaml
+*.log
+/run.bash
