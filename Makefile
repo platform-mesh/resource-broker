@@ -1,5 +1,6 @@
 # Image URL to use all building/pushing image targets
 IMG ?= resource-broker:dev
+IMG_KCP ?= resource-broker-kcp:dev
 IMG_OPERATOR ?= resource-broker-operator:dev
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -143,6 +144,10 @@ run-operator: manifests generate fmt vet ## Run operator from your host.
 docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .
 
+.PHONY: docker-build-kcp
+docker-build-kcp: ## Build docker image with the operator for kcp.
+	$(CONTAINER_TOOL) build -t ${IMG_KCP} -f contrib/kcp/Dockerfile .
+
 .PHONY: docker-build-operator
 docker-build-operator: ## Build docker image with the operator.
 	$(CONTAINER_TOOL) build -t ${IMG_OPERATOR} -f cmd/operator/Dockerfile .
@@ -152,6 +157,10 @@ KIND_CLUSTER ?= kind
 .PHONY: kind-load
 kind-load: ## Load docker image with the broker into kind cluster. Set cluster name with KIND_CLUSTER.
 	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG}"
+
+.PHONY: kind-load-kcp
+kind-load-kcp: ## Load docker image with the operator for kcp into kind cluster. Set cluster name with KIND_CLUSTER.
+	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_KCP}"
 
 .PHONY: kind-load-operator
 kind-load-operator: ## Load docker image with the operator into kind cluster. Set cluster name with KIND_CLUSTER.

@@ -155,9 +155,8 @@ _start_broker() {
     log "Starting broker"
 
     log "Deploy resource-broker"
-    docker build -t resource-broker-kcp:dev -f contrib/kcp/Dockerfile . \
-        || die "Failed to build resource-broker-kcp image"
-    kind load docker-image "resource-broker-kcp:dev" --name broker-platform \
+    make docker-build-kcp || die "Failed to build resource-broker-kcp docker image"
+    make kind-load-kcp KIND_CLUSTER=broker-platform \
         || die "Failed to load resource-broker-kcp image into kind cluster"
 
     # Grab the new kubeconfig for the operator, targeting the platform
