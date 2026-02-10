@@ -54,6 +54,15 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - image: resource-broker
+            dockerfile: Dockerfile
+          - image: resource-broker-kcp
+            dockerfile: contrib/kcp/Dockerfile
+          - image: resource-broker-operator
+            dockerfile: cmd/operator/Dockerfile
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
@@ -68,19 +77,102 @@ jobs:
       - id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
+          images: ghcr.io/platform-mesh/${{ matrix.image }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix=sha-
+            type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4 # v6
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
-          files: |
-            ./docker-bake.hcl
-            cwd://${{ steps.meta.outputs.bake-file }}
-          targets: default
-          # Only try to push if this is a push event (on a branch) or if the PR is from the same repository
-          push: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+          file: ${{ matrix.dockerfile }}
+          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: |
+            type=image,push=${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+            type=oci,dest=${{ matrix.image }}.oci
+
+      - uses: actions/cache/save@v5
+        with:
+          key: image-${{ matrix.image }}-${{ github.sha }}
+          path: ${{ matrix.image }}.oci
+
+  list-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - id: list-examples
+        run: |
+          {
+            echo -n 'examples=['
+            find examples -mindepth 1 -maxdepth 1 -type d -printf '"%f",'
+            echo -n ']'
+          } > "$GITHUB_OUTPUT"
+          sed -i 's#,]#]#' "$GITHUB_OUTPUT"
+    outputs:
+      examples: ${{ steps.list-examples.outputs.examples }}
+
+  examples:
+    needs:
+      - docker
+      - list-examples
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJson(needs.list-examples.outputs.examples) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
+        with:
+          go-version-file: go.mod
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1
+        with:
+          # Only install kind without setting up any clusters. Clusters
+          # will be created as needed in the examples.
+          install_only: true
+
+      # import the images from the previous job from cache
+      - run: sudo apt-get update -y && sudo apt-get install -y skopeo
+      - uses: actions/cache/restore@v5
+        with:
+          key: image-resource-broker-${{ github.sha }}
+          path: resource-broker.oci
+          fail-on-cache-miss: true
+      - run: skopeo copy --format v2s2 --multi-arch system oci-archive:resource-broker.oci:sha-${{ github.sha }} docker-daemon:resource-broker:dev
+      - uses: actions/cache/restore@v5
+        with:
+          key: image-resource-broker-kcp-${{ github.sha }}
+          path: resource-broker-kcp.oci
+          fail-on-cache-miss: true
+      - run: skopeo copy --format v2s2 --multi-arch system oci-archive:resource-broker-kcp.oci:sha-${{ github.sha }} docker-daemon:resource-broker-kcp:dev
+      - uses: actions/cache/restore@v5
+        with:
+          key: image-resource-broker-operator-${{ github.sha }}
+          path: resource-broker-operator.oci
+          fail-on-cache-miss: true
+      - run: skopeo copy --format v2s2 --multi-arch system oci-archive:resource-broker-operator.oci:sha-${{ github.sha }} docker-daemon:resource-broker-operator:dev
+
+      - uses: ntnn/mdextract@e5a8798e279b2287fce907b7526dccf90ceeb8f7 # v0.3.0
+        with:
+          input: ./examples/${{ matrix.example }}/README.md
+          output: run.bash
+          tags: bash,ci
+
+      - run: bash -xe run.bash
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: failure()
+        with:
+          name: logs-${{ matrix.example }}
+          path: |
+            *.log
+            *.yaml

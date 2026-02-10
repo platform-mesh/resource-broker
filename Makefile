@@ -166,11 +166,6 @@ kind-load-kcp: ## Load docker image with the operator for kcp into kind cluster.
 kind-load-operator: ## Load docker image with the operator into kind cluster. Set cluster name with KIND_CLUSTER.
 	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_OPERATOR}"
 
-.PHONY: docker-bake
-docker-bake: ## Build docker images with cross-platform support
-	@echo "If this fails your docker likely doesn't use containerd as the storage backend"
-	$(CONTAINER_TOOL) buildx bake --load
-
 ##@ Deployment
 
 ifndef ignore-not-found
