@@ -10,9 +10,9 @@ require (
 	github.com/kcp-dev/sdk v0.30.0
 	github.com/platform-mesh/resource-broker v0.0.0-00010101000000-000000000000
 	golang.org/x/sync v0.19.0
-	k8s.io/api v0.35.0
-	k8s.io/apimachinery v0.35.0
-	k8s.io/client-go v0.35.0
+	k8s.io/api v0.35.1
+	k8s.io/apimachinery v0.35.1
+	k8s.io/client-go v0.35.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/controller-runtime v0.23.1
 	sigs.k8s.io/multicluster-runtime v0.23.1
