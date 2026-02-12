@@ -42,7 +42,7 @@ import (
 	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
-	brokerutils "github.com/platform-mesh/resource-broker/pkg/utils"
+	"github.com/platform-mesh/resource-broker/pkg/sync"
 )
 
 // MigrationOptions holds the options for the migration reconciler.
@@ -246,7 +246,7 @@ func (mr *migrationReconciler) copyRelatedResources(ctx context.Context, from br
 		return err
 	}
 
-	relatedResources, err := brokerutils.CollectRelatedResources(
+	relatedResources, err := sync.CollectRelatedResources(
 		ctx,
 		cl.GetClient(),
 		schema.GroupVersionKind{
@@ -298,7 +298,7 @@ func (mr *migrationReconciler) copyRelatedResource(ctx context.Context, source c
 		return err
 	}
 
-	targetObj := brokerutils.StripClusterMetadata(sourceObj)
+	targetObj := sync.StripClusterMetadata(sourceObj)
 	targetObj.SetName(prefix + relatedResource.Name)
 	if relatedResource.Namespace != "" {
 		targetObj.SetNamespace(relatedResource.Namespace) // TODO handle namespacing. all resources should probably be in the same namespace

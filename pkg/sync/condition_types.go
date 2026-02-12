@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package sync
 
 // ConditionType is a discrete, strongly-typed alias for metav1.Condition.Type
 // values used within this package. Defining a concrete type and named
@@ -25,8 +25,8 @@ type ConditionType string
 func (c ConditionType) String() string { return string(c) }
 
 const (
-	// ConditionResourceCopied indicates the resource was copied/created/updated on the
-	// destination cluster.
+	// ConditionResourceCopied indicates the resource was copied/created/updated
+	// on the destination cluster.
 	ConditionResourceCopied ConditionType = "Copied"
 
 	// ConditionStatusSynced indicates the status was copied back to the

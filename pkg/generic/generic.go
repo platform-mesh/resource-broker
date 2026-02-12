@@ -40,7 +40,7 @@ import (
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/kubernetes"
-	brokerutils "github.com/platform-mesh/resource-broker/pkg/utils"
+	"github.com/platform-mesh/resource-broker/pkg/sync"
 )
 
 // Options are the options for the generic reconciler.
@@ -681,7 +681,7 @@ func (gr *genericReconciler) syncResource(ctx context.Context, providerName stri
 	// TODO send conditions back to consumer cluster
 	// TODO there should be two informers triggering this - one
 	// for consumer and one for provider
-	if cond, err := brokerutils.CopyResource(
+	if cond, err := sync.CopyResource(
 		ctx,
 		gr.gvk,
 		gr.req.NamespacedName,
@@ -719,7 +719,7 @@ func (gr *genericReconciler) syncRelatedResources(ctx context.Context, providerN
 	// TODO handle resource drift when a related resource is removed in
 	// the provider it needs to be removed in the consumer
 	// maybe just a finalizer on the resources in the provider?
-	relatedResources, err := brokerutils.CollectRelatedResources(ctx, providerCluster.GetClient(), gr.gvk, gr.req.NamespacedName)
+	relatedResources, err := sync.CollectRelatedResources(ctx, providerCluster.GetClient(), gr.gvk, gr.req.NamespacedName)
 	if err != nil {
 		return fmt.Errorf("failed to collect related resources from provider cluster %q: %w", providerName, err)
 	}
@@ -763,7 +763,7 @@ func (gr *genericReconciler) syncRelatedResource(ctx context.Context, providerCl
 	}
 
 	// TODO conditions
-	_, err := brokerutils.CopyResource(
+	_, err := sync.CopyResource(
 		ctx,
 		relatedResource.SchemaGVK(),
 		types.NamespacedName{

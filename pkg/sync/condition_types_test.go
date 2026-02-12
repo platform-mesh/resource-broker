@@ -15,6 +15,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package utils contains utility functions and types for the project.
-// TODO: This should be split, it's more of a bandaid right now.
-package utils
+package sync
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestConditionTypeString(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ConditionResourceCopied", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "Copied", ConditionResourceCopied.String())
+	})
+
+	t.Run("ConditionStatusSynced", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "StatusSynced", ConditionStatusSynced.String())
+	})
+}

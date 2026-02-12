@@ -15,26 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
-
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
-
-func TestConditionTypeString(t *testing.T) {
-	t.Parallel()
-
-	t.Run("ConditionResourceCopied", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "Copied", ConditionResourceCopied.String())
-	})
-
-	t.Run("ConditionStatusSynced", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "StatusSynced", ConditionStatusSynced.String())
-	})
-}
+// Package kubernetes offers utility functions for working with Kubernetes
+// objects.
+package kubernetes

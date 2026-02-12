@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package sync
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func CollectRelatedResources(ctx context.Context, providerClient client.Client, 
 
 	relatedResources := make(map[string]brokerv1alpha1.RelatedResource, len(relatedResourcesI))
 	for key, rrI := range relatedResourcesI {
-		rrMap, ok := rrI.(map[string]interface{})
+		rrMap, ok := rrI.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("failed to cast related resource %q from synced resource status", key)
 		}

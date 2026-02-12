@@ -68,10 +68,6 @@ linters:
         linters:
           - revive
         text: "var-naming" # the package name `utils` is fine here
-      - path: pkg/utils
-        linters:
-          - revive
-        text: "var-naming" # yeah, utils is a bandaid
   settings:
     goheader:
       values:
