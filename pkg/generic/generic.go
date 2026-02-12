@@ -39,6 +39,7 @@ import (
 	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
+	"github.com/platform-mesh/resource-broker/pkg/kubernetes"
 	brokerutils "github.com/platform-mesh/resource-broker/pkg/utils"
 )
 
@@ -551,7 +552,7 @@ func (gr *genericReconciler) newProvider(ctx context.Context, consumerObj *unstr
 	if err != nil {
 		return fmt.Errorf("failed to get resource from consumer cluster %q: %w", gr.consumerName, err)
 	}
-	brokerutils.SetAnnotation(consumerObj, newProviderClusterAnn, gr.newProviderName)
+	kubernetes.SetAnnotation(consumerObj, newProviderClusterAnn, gr.newProviderName)
 	if err := gr.consumerCluster.GetClient().Update(ctx, consumerObj); err != nil {
 		return fmt.Errorf("failed to set new provider cluster annotation in consumer: %w", err)
 	}
@@ -646,7 +647,7 @@ func (gr *genericReconciler) decorateInProvider(ctx context.Context, providerNam
 		}
 	}
 
-	brokerutils.SetAnnotation(obj, consumerClusterAnn, gr.consumerName)
+	kubernetes.SetAnnotation(obj, consumerClusterAnn, gr.consumerName)
 	if err := providerCluster.GetClient().Update(ctx, obj); err != nil {
 		return fmt.Errorf("failed to set annotations in provider: %w", err)
 	}
