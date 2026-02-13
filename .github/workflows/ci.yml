@@ -93,12 +93,6 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: |
             type=image,push=${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
-            type=oci,dest=${{ matrix.image }}.oci
-
-      - uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
-        with:
-          key: image-${{ matrix.image }}-${{ github.sha }}
-          path: ${{ matrix.image }}.oci
 
   list-examples:
     runs-on: ubuntu-latest
@@ -140,26 +134,28 @@ jobs:
           # will be created as needed in the examples.
           install_only: true
 
-      # import the images from the previous job from cache
-      - run: sudo apt-get update -y && sudo apt-get install -y skopeo
-      - uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+      # use the gha cache to "transfer" the images built in the previous job to this job
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
-          key: image-resource-broker-${{ github.sha }}
-          path: resource-broker.oci
-          fail-on-cache-miss: true
-      - run: skopeo copy --format v2s2 --multi-arch system oci-archive:resource-broker.oci:sha-${{ github.sha }} docker-daemon:resource-broker:dev
-      - uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+          file: Dockerfile
+          tags: resource-broker:dev
+          cache-from: type=gha
+          push: false
+          load: true
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
-          key: image-resource-broker-kcp-${{ github.sha }}
-          path: resource-broker-kcp.oci
-          fail-on-cache-miss: true
-      - run: skopeo copy --format v2s2 --multi-arch system oci-archive:resource-broker-kcp.oci:sha-${{ github.sha }} docker-daemon:resource-broker-kcp:dev
-      - uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+          file: contrib/kcp/Dockerfile
+          tags: resource-broker-kcp:dev
+          cache-from: type=gha
+          push: false
+          load: true
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
-          key: image-resource-broker-operator-${{ github.sha }}
-          path: resource-broker-operator.oci
-          fail-on-cache-miss: true
-      - run: skopeo copy --format v2s2 --multi-arch system oci-archive:resource-broker-operator.oci:sha-${{ github.sha }} docker-daemon:resource-broker-operator:dev
+          file: cmd/operator/Dockerfile
+          tags: resource-broker-operator:dev
+          cache-from: type=gha
+          push: false
+          load: true
 
       - uses: ntnn/mdextract@e5a8798e279b2287fce907b7526dccf90ceeb8f7 # v0.3.0
         with:
