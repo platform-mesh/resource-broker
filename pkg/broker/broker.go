@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
-	"github.com/platform-mesh/resource-broker/pkg/acceptapi"
-	brokergeneric "github.com/platform-mesh/resource-broker/pkg/generic"
+	acceptapireconciler "github.com/platform-mesh/resource-broker/pkg/broker/acceptapi"
+	genericreconciler "github.com/platform-mesh/resource-broker/pkg/broker/generic"
 	"github.com/platform-mesh/resource-broker/pkg/migration"
 )
 
@@ -90,7 +90,7 @@ func NewBroker(
 	if err := mcbuilder.ControllerManagedBy(mgr).
 		Named(name + "-acceptapi").
 		For(&brokerv1alpha1.AcceptAPI{}).
-		Complete(acceptapi.ReconcilerFunc(acceptapi.Options{
+		Complete(acceptapireconciler.ReconcilerFunc(acceptapireconciler.Options{
 			GetCluster: mgr.GetCluster,
 			SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPI brokerv1alpha1.AcceptAPI) {
 				b.lock.Lock()
@@ -170,7 +170,7 @@ func NewBroker(
 		return nil, fmt.Errorf("failed to create migration reconciler: %w", err)
 	}
 
-	genericOpts := brokergeneric.Options{
+	genericOpts := genericreconciler.Options{
 		Coordination: b.coordination,
 		GetProviderCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
 			if !strings.HasPrefix(clusterName, ProviderPrefix) {
@@ -219,7 +219,7 @@ func NewBroker(
 		if err := mcbuilder.ControllerManagedBy(mgr).
 			Named(name + "-generic-" + gvk.String()).
 			For(obj).
-			Complete(brokergeneric.ReconcileFunc(genericOpts, gvk)); err != nil {
+			Complete(genericreconciler.ReconcileFunc(genericOpts, gvk)); err != nil {
 			return nil, fmt.Errorf("failed to create generic reconciler for %v: %w", gvk, err)
 		}
 	}
