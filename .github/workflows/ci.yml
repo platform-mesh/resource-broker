@@ -135,21 +135,21 @@ jobs:
           install_only: true
 
       # use the gha cache to "transfer" the images built in the previous job to this job
-      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           file: Dockerfile
           tags: resource-broker:dev
           cache-from: type=gha
           push: false
           load: true
-      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           file: contrib/kcp/Dockerfile
           tags: resource-broker-kcp:dev
           cache-from: type=gha
           push: false
           load: true
-      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           file: cmd/operator/Dockerfile
           tags: resource-broker-operator:dev
