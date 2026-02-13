@@ -17,7 +17,6 @@ package operator
 
 import (
 	"fmt"
-	"maps"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,16 +26,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/platform-mesh/resource-broker/api/operator/v1alpha1"
+	"github.com/platform-mesh/resource-broker/pkg/kubernetes"
 )
 
 // updateDeployment updates a deployment based on the values in the broker spec.
 func updateDeployment(scheme *runtime.Scheme, broker *operatorv1alpha1.Broker, deployment *appsv1.Deployment) error {
 	// labels
-	deployment.Labels = maps.Clone(broker.Spec.Labels)
-	deployment.Spec.Template.Labels = maps.Clone(broker.Spec.Labels)
-	if deployment.Spec.Template.Labels == nil {
-		deployment.Spec.Template.Labels = map[string]string{}
-	}
+	deployment.Labels = kubernetes.MergeMaps(deployment.Labels, broker.Spec.Labels)
+	deployment.Spec.Template.Labels = kubernetes.MergeMaps(deployment.Spec.Template.Labels, broker.Spec.Labels)
 
 	// set selector labels
 	if deployment.Spec.Selector == nil {
@@ -49,16 +46,8 @@ func updateDeployment(scheme *runtime.Scheme, broker *operatorv1alpha1.Broker, d
 	deployment.Spec.Template.Labels["app"] = broker.Name
 
 	// annotations
-	if deployment.Annotations == nil {
-		deployment.Annotations = map[string]string{}
-	}
-	if deployment.Spec.Template.Annotations == nil {
-		deployment.Spec.Template.Annotations = map[string]string{}
-	}
-	for k, v := range broker.Spec.Annotations {
-		deployment.Annotations[k] = v
-		deployment.Spec.Template.Annotations[k] = v
-	}
+	deployment.Annotations = kubernetes.MergeMaps(deployment.Annotations, broker.Spec.Annotations)
+	deployment.Spec.Template.Annotations = kubernetes.MergeMaps(deployment.Spec.Template.Annotations, broker.Spec.Annotations)
 
 	// pod / container
 	replicas := int32(1)
