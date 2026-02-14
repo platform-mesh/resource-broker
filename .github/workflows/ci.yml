@@ -157,7 +157,7 @@ jobs:
           push: false
           load: true
 
-      - uses: ntnn/mdextract@e5a8798e279b2287fce907b7526dccf90ceeb8f7 # v0.3.0
+      - uses: ntnn/mdextract@380b5ce9e585364ab79e3e8e8bb7bcb02cbfcecb # v0.4.1
         with:
           input: ./examples/${{ matrix.example }}/README.md
           output: run.bash
