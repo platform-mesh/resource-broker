@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/google/cel-go/cel"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,88 +33,86 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcluster "sigs.k8s.io/controller-runtime/pkg/cluster"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
-	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/sync"
 )
-
-// MigrationOptions holds the options for the migration reconciler.
-type MigrationOptions struct { //nolint:revive
-	Compute                   client.Client
-	GetCoordinationCluster    func(context.Context, string) (cluster.Cluster, error)
-	GetProviderCluster        func(context.Context, string) (cluster.Cluster, error)
-	GetMigrationConfiguration func(metav1.GroupVersionKind, metav1.GroupVersionKind) (brokerv1alpha1.MigrationConfiguration, bool)
-}
-
-// MigrationReconcilerFunc returns a reconciler function for Migration
-// resources.
-func MigrationReconcilerFunc(opts MigrationOptions) mcreconcile.Func { //nolint:revive
-	return func(ctx context.Context, req mctrl.Request) (mctrl.Result, error) {
-		mr := &migrationReconciler{
-			opts: opts,
-			log: ctrllog.FromContext(ctx).WithValues(
-				"clusterName", req.ClusterName,
-				"name", req.Name,
-				"namespace", req.Namespace,
-			),
-			req: req,
-		}
-		return mr.reconcile(ctx)
-	}
-}
 
 const (
 	migrationStageLabel = "broker.platform-mesh.io/migration-stage"
 	migrationIDLabel    = "broker.platform-mesh.io/migration-id"
 )
 
-type migrationReconciler struct {
-	opts MigrationOptions
-	log  logr.Logger
-	req  mctrl.Request
-
-	cluster cluster.Cluster
+// MigrationOptions holds the options for the migration reconciler.
+type MigrationOptions struct { //nolint:revive
+	ControllerNamePrefix      string
+	Compute                   ctrlclient.Client
+	GetCoordinationCluster    func(context.Context, string) (ctrlcluster.Cluster, error)
+	GetProviderCluster        func(context.Context, string) (ctrlcluster.Cluster, error)
+	GetMigrationConfiguration func(metav1.GroupVersionKind, metav1.GroupVersionKind) (brokerv1alpha1.MigrationConfiguration, bool)
 }
 
-func (mr *migrationReconciler) reconcile(ctx context.Context) (mctrl.Result, error) {
-	mr.log.Info("Reconciling migration")
+type migrationReconciler struct {
+	opts MigrationOptions
+}
 
-	var err error
-	mr.cluster, err = mr.opts.GetCoordinationCluster(ctx, mr.req.ClusterName)
+// SetupController creates a controller to handle MigrationConfiguration resources.
+func SetupController(mgr mctrl.Manager, opts MigrationOptions) error {
+	r := &migrationReconciler{
+		opts: opts,
+	}
+
+	return mctrl.NewControllerManagedBy(mgr).
+		Named(opts.ControllerNamePrefix + "-migration").
+		For(&brokerv1alpha1.Migration{}).
+		Complete(r)
+}
+
+func (mr *migrationReconciler) Reconcile(ctx context.Context, req mctrl.Request) (mctrl.Result, error) {
+	log := ctrllog.FromContext(ctx).WithValues(
+		"clusterName", req.ClusterName,
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
+	log.Info("Reconciling migration")
+
+	ctx = ctrllog.IntoContext(ctx, log)
+
+	cluster, err := mr.opts.GetCoordinationCluster(ctx, req.ClusterName)
 	if err != nil {
-		mr.log.Error(err, "Failed to get cluster")
+		log.Error(err, "Failed to get cluster")
 		return ctrl.Result{}, err
 	}
 
-	migration, err := mr.getMigration(ctx)
+	migration, err := mr.getMigration(ctx, req.NamespacedName, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	mr.log.Info("Migration found")
+	log.Info("Migration found")
 
 	switch migration.Status.State {
 	case brokerv1alpha1.MigrationStateUnknown:
-		mr.log.Info("Setting migration state to Pending")
+		log.Info("Setting migration state to Pending")
 		// Not using the updateStatus helper, the migration was just
 		// retrieved and the .ID in status needs to be set.
 		migration.Status.ID = strings.ToLower(rand.Text())
 		migration.Status.State = brokerv1alpha1.MigrationStatePending
-		if err := mr.cluster.GetClient().Status().Update(ctx, migration); err != nil {
-			mr.log.Error(err, "Failed to update migration status")
+		if err := cluster.GetClient().Status().Update(ctx, migration); err != nil {
+			log.Error(err, "Failed to update migration status")
 			return ctrl.Result{}, err
 		}
+
 	case brokerv1alpha1.MigrationStateCutoverCompleted:
-		mr.log.Info("Migration already completed, skipping")
+		log.Info("Migration already completed, skipping")
 		return ctrl.Result{}, nil
 	}
 
-	mr.log.Info("Copying related resources from source and target clusters")
+	log.Info("Copying related resources from source and target clusters")
 	if err := mr.copyRelatedResources(ctx, migration.Spec.From, "from-"); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -124,16 +121,16 @@ func (mr *migrationReconciler) reconcile(ctx context.Context) (mctrl.Result, err
 		return ctrl.Result{}, err
 	}
 
-	mr.log.Info("Fetching migration configuration")
+	log.Info("Fetching migration configuration")
 	migrationConfig, ok := mr.opts.GetMigrationConfiguration(migration.Spec.From.GVK, migration.Spec.To.GVK)
 	if !ok {
-		mr.log.Info("No migration configuration found for migration", "fromGVK", migration.Spec.From.GVK, "toGVK", migration.Spec.To.GVK)
+		log.Info("No migration configuration found for migration", "fromGVK", migration.Spec.From.GVK, "toGVK", migration.Spec.To.GVK)
 		return ctrl.Result{}, nil
 	}
 
 	if len(migrationConfig.Spec.Stages) == 0 {
-		mr.log.Info("Migration configuration has no stages defined, marking migration as completed")
-		return mctrl.Result{}, mr.updateStatus(ctx, func(migration *brokerv1alpha1.Migration) {
+		log.Info("Migration configuration has no stages defined, marking migration as completed")
+		return mctrl.Result{}, mr.updateStatus(ctx, req.NamespacedName, cluster, func(migration *brokerv1alpha1.Migration) {
 			migration.Status.State = brokerv1alpha1.MigrationStateCutoverCompleted
 		})
 	}
@@ -150,41 +147,41 @@ func (mr *migrationReconciler) reconcile(ctx context.Context) (mctrl.Result, err
 		return ctrl.Result{}, fmt.Errorf("current migration stage %s not found in migration configuration", migration.Status.Stage)
 	}
 
-	mr.log.Info("Processing migration stage", "stage", migrationConfig.Spec.Stages[stageIndex].Name)
+	log.Info("Processing migration stage", "stage", migrationConfig.Spec.Stages[stageIndex].Name)
 
 	curStage := migrationConfig.Spec.Stages[stageIndex]
-	mr.log = mr.log.WithValues("migrationStage", curStage.Name)
+	log = log.WithValues("migrationStage", curStage.Name)
 
 	stageResources, err := mr.deployStage(ctx, migration.Status.ID, curStage)
 	if err != nil {
-		mr.log.Error(err, "Failed to deploy resources for migration stage", "stage", curStage.Name)
+		log.Error(err, "Failed to deploy resources for migration stage", "stage", curStage.Name)
 		return ctrl.Result{}, err
 	}
 
 	// Set next state if pending, otherwise there is not transition out
 	// of the initial state.
 	if migration.Status.State == brokerv1alpha1.MigrationStatePending {
-		if err := mr.updateStatus(ctx, func(migration *brokerv1alpha1.Migration) {
+		if err := mr.updateStatus(ctx, req.NamespacedName, cluster, func(migration *brokerv1alpha1.Migration) {
 			migration.Status.State = brokerv1alpha1.MigrationStateInitialInProgress
 		}); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	mr.log.Info("Deployed resources for migration stage", "resources", stageResources)
+	log.Info("Deployed resources for migration stage", "resources", stageResources)
 
-	mr.log.Info("Evaluating success conditions for migration stage")
+	log.Info("Evaluating success conditions for migration stage")
 	success, err := mr.checkSuccessConditions(ctx, stageResources, curStage.SuccessConditions)
 	if err != nil {
-		mr.log.Error(err, "Failed to evaluate success conditions for migration stage")
+		log.Error(err, "Failed to evaluate success conditions for migration stage")
 		return ctrl.Result{}, err
 	}
 	if !success {
-		mr.log.Info("Not all success conditions met for migration stage, skipping")
+		log.Info("Not all success conditions met for migration stage, skipping")
 		return ctrl.Result{}, nil
 	}
 
-	mr.log.Info("All success conditions met for migration stage", "stage", curStage.Name)
+	log.Info("All success conditions met for migration stage", "stage", curStage.Name)
 	for _, res := range stageResources {
 		if err := mr.opts.Compute.Delete(ctx, res); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to clean up resource %s/%s from migration stage %s: %w", res.GetNamespace(), res.GetName(), curStage.Name, err)
@@ -192,15 +189,15 @@ func (mr *migrationReconciler) reconcile(ctx context.Context) (mctrl.Result, err
 	}
 
 	if stageIndex+1 >= len(migrationConfig.Spec.Stages) {
-		mr.log.Info("All migration stages completed, marking migration as completed")
-		return ctrl.Result{}, mr.updateStatus(ctx, func(migration *brokerv1alpha1.Migration) {
+		log.Info("All migration stages completed, marking migration as completed")
+		return ctrl.Result{}, mr.updateStatus(ctx, req.NamespacedName, cluster, func(migration *brokerv1alpha1.Migration) {
 			migration.Status.State = brokerv1alpha1.MigrationStateCutoverCompleted
 		})
 	}
 
 	if curStage.Progress {
-		mr.log.Info("Progressing migration state to next phase")
-		if err := mr.updateStatus(ctx, func(migration *brokerv1alpha1.Migration) {
+		log.Info("Progressing migration state to next phase")
+		if err := mr.updateStatus(ctx, req.NamespacedName, cluster, func(migration *brokerv1alpha1.Migration) {
 			switch migration.Status.State {
 			case brokerv1alpha1.MigrationStateInitialInProgress:
 				migration.Status.State = brokerv1alpha1.MigrationStateInitialCompleted
@@ -216,25 +213,25 @@ func (mr *migrationReconciler) reconcile(ctx context.Context) (mctrl.Result, err
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (mr *migrationReconciler) getMigration(ctx context.Context) (*brokerv1alpha1.Migration, error) {
+func (mr *migrationReconciler) getMigration(ctx context.Context, nn types.NamespacedName, cluster ctrlcluster.Cluster) (*brokerv1alpha1.Migration, error) {
 	migration := &brokerv1alpha1.Migration{}
-	if err := mr.cluster.GetClient().Get(ctx, mr.req.NamespacedName, migration); err != nil {
-		mr.log.Error(err, "Failed to get migration")
+	if err := cluster.GetClient().Get(ctx, nn, migration); err != nil {
+		ctrllog.FromContext(ctx).Error(err, "Failed to get migration")
 		return nil, err
 	}
 	return migration, nil
 }
 
-func (mr *migrationReconciler) updateStatus(ctx context.Context, updateFunc func(*brokerv1alpha1.Migration)) error {
-	migration, err := mr.getMigration(ctx)
+func (mr *migrationReconciler) updateStatus(ctx context.Context, nn types.NamespacedName, cl ctrlcluster.Cluster, updateFunc func(*brokerv1alpha1.Migration)) error {
+	migration, err := mr.getMigration(ctx, nn, cl)
 	if err != nil {
 		return err
 	}
 
 	updateFunc(migration)
 
-	if err := mr.cluster.GetClient().Status().Update(ctx, migration); err != nil {
-		mr.log.Error(err, "Failed to update migration status")
+	if err := cl.GetClient().Status().Update(ctx, migration); err != nil {
+		ctrllog.FromContext(ctx).Error(err, "Failed to update migration status")
 		return err
 	}
 	return nil
@@ -245,6 +242,8 @@ func (mr *migrationReconciler) copyRelatedResources(ctx context.Context, from br
 	if err != nil {
 		return err
 	}
+
+	log := ctrllog.FromContext(ctx)
 
 	relatedResources, err := sync.CollectRelatedResources(
 		ctx,
@@ -260,22 +259,23 @@ func (mr *migrationReconciler) copyRelatedResources(ctx context.Context, from br
 		},
 	)
 	if err != nil {
-		mr.log.Error(err, "Failed to collect related resources")
+		log.Error(err, "Failed to collect related resources")
 		return err
 	}
 
 	var errs error
 	for key, rr := range relatedResources {
 		if err := mr.copyRelatedResource(ctx, cl, prefix, rr); err != nil {
-			mr.log.Error(err, "Failed to copy related resource", "prefix", prefix, "key", key)
+			log.Error(err, "Failed to copy related resource", "prefix", prefix, "key", key)
 			errs = errors.Join(errs, err)
 		}
 	}
+
 	return errs
 }
 
-func (mr *migrationReconciler) copyRelatedResource(ctx context.Context, source cluster.Cluster, prefix string, relatedResource brokerv1alpha1.RelatedResource) error {
-	log := mr.log.WithValues(
+func (mr *migrationReconciler) copyRelatedResource(ctx context.Context, source ctrlcluster.Cluster, prefix string, relatedResource brokerv1alpha1.RelatedResource) error {
+	log := ctrllog.FromContext(ctx).WithValues(
 		"relatedResourceNamespace", relatedResource.Namespace,
 		"relatedResourceName", relatedResource.Name,
 		"relatedResourceGVK", relatedResource.GVK,
@@ -308,10 +308,7 @@ func (mr *migrationReconciler) copyRelatedResource(ctx context.Context, source c
 	existingObj.SetGroupVersionKind(targetObj.GroupVersionKind())
 	err := mr.opts.Compute.Get(
 		ctx,
-		types.NamespacedName{
-			Name:      targetObj.GetName(),
-			Namespace: targetObj.GetNamespace(),
-		},
+		ctrlclient.ObjectKeyFromObject(targetObj),
 		existingObj,
 	)
 	if err != nil {
@@ -386,6 +383,8 @@ func (mr *migrationReconciler) deployStage(ctx context.Context, migrationID stri
 }
 
 func (mr *migrationReconciler) checkSuccessConditions(ctx context.Context, stageResources map[string]*unstructured.Unstructured, successConditions []string) (bool, error) {
+	log := ctrllog.FromContext(ctx)
+
 	celEnv, celArgs, err := mr.prepCEL(stageResources)
 	if err != nil {
 		return false, fmt.Errorf("failed to prepare CEL environment: %w", err)
@@ -412,11 +411,11 @@ func (mr *migrationReconciler) checkSuccessConditions(ctx context.Context, stage
 		}
 
 		if !val.Value().(bool) {
-			mr.log.Info("Success condition not yet met for migration stage", "condition", condExpr)
+			log.Info("Success condition not yet met for migration stage", "condition", condExpr)
 			return false, nil
 		}
 
-		mr.log.Info("Success condition met for migration stage", "condition", condExpr)
+		log.Info("Success condition met for migration stage", "condition", condExpr)
 	}
 
 	return true, nil

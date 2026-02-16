@@ -32,13 +32,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
-	mcbuilder "sigs.k8s.io/multicluster-runtime/pkg/builder"
 	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	acceptapireconciler "github.com/platform-mesh/resource-broker/pkg/broker/acceptapi"
 	genericreconciler "github.com/platform-mesh/resource-broker/pkg/broker/generic"
-	"github.com/platform-mesh/resource-broker/pkg/migration"
+	"github.com/platform-mesh/resource-broker/pkg/broker/migration"
 )
 
 const (
@@ -85,89 +84,97 @@ func NewBroker(
 	b.compute = compute
 	b.discoveryClient = discoveryClient
 
+	// This map is shared by multiple reconcilers and so needs to be guarded by locks.
 	b.apiAccepters = make(map[metav1.GroupVersionResource]map[string]map[string]brokerv1alpha1.AcceptAPI)
-	if err := mcbuilder.ControllerManagedBy(mgr).
-		Named(name + "-acceptapi").
-		For(&brokerv1alpha1.AcceptAPI{}).
-		Complete(acceptapireconciler.ReconcilerFunc(acceptapireconciler.Options{
-			GetCluster: mgr.GetCluster,
-			SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPI brokerv1alpha1.AcceptAPI) {
-				b.lock.Lock()
-				defer b.lock.Unlock()
-				if _, ok := b.apiAccepters[gvr]; !ok {
-					b.apiAccepters[gvr] = make(map[string]map[string]brokerv1alpha1.AcceptAPI)
+
+	/////////////////////////////////////////////////////////////////////////////
+	// AcceptAPI Controller
+
+	acceptAPIOpts := acceptapireconciler.Options{
+		GetCluster:           mgr.GetCluster,
+		ControllerNamePrefix: name,
+		SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPI brokerv1alpha1.AcceptAPI) {
+			b.lock.Lock()
+			defer b.lock.Unlock()
+			if _, ok := b.apiAccepters[gvr]; !ok {
+				b.apiAccepters[gvr] = make(map[string]map[string]brokerv1alpha1.AcceptAPI)
+			}
+			if _, ok := b.apiAccepters[gvr][clusterName]; !ok {
+				b.apiAccepters[gvr][clusterName] = make(map[string]brokerv1alpha1.AcceptAPI)
+			}
+			b.apiAccepters[gvr][clusterName][acceptAPI.Name] = acceptAPI
+		},
+		DeleteAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPIName string) {
+			b.lock.Lock()
+			defer b.lock.Unlock()
+			clusterAcceptedAPIs, ok := b.apiAccepters[gvr][clusterName]
+			if ok {
+				delete(clusterAcceptedAPIs, acceptAPIName)
+				if len(clusterAcceptedAPIs) == 0 {
+					delete(b.apiAccepters[gvr], clusterName)
 				}
-				if _, ok := b.apiAccepters[gvr][clusterName]; !ok {
-					b.apiAccepters[gvr][clusterName] = make(map[string]brokerv1alpha1.AcceptAPI)
-				}
-				b.apiAccepters[gvr][clusterName][acceptAPI.Name] = acceptAPI
-			},
-			DeleteAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPIName string) {
-				b.lock.Lock()
-				defer b.lock.Unlock()
-				clusterAcceptedAPIs, ok := b.apiAccepters[gvr][clusterName]
-				if ok {
-					delete(clusterAcceptedAPIs, acceptAPIName)
-					if len(clusterAcceptedAPIs) == 0 {
-						delete(b.apiAccepters[gvr], clusterName)
-					}
-				}
-			},
-		})); err != nil {
+			}
+		},
+	}
+
+	if err := acceptapireconciler.SetupController(mgr, acceptAPIOpts); err != nil {
 		return nil, fmt.Errorf("failed to create accept API reconciler: %w", err)
 	}
 
+	/////////////////////////////////////////////////////////////////////////////
+	// Migration Controllers
+
+	// This map is shared by multiple reconcilers and so needs to be guarded by locks.
 	b.migrationConfigurations = make(map[metav1.GroupVersionKind]map[metav1.GroupVersionKind]brokerv1alpha1.MigrationConfiguration)
-	if err := mcbuilder.ControllerManagedBy(mgr).
-		Named(name + "-migration-configuration").
-		For(&brokerv1alpha1.MigrationConfiguration{}).
-		Complete(
-			migration.ConfigurationReconcilerFunc(
-				migration.ConfigurationOptions{
-					GetCluster: mgr.GetCluster,
-					SetMigrationConfiguration: func(from metav1.GroupVersionKind, to metav1.GroupVersionKind, config brokerv1alpha1.MigrationConfiguration) {
-						b.lock.Lock()
-						defer b.lock.Unlock()
-						if _, ok := b.migrationConfigurations[from]; !ok {
-							b.migrationConfigurations[from] = make(map[metav1.GroupVersionKind]brokerv1alpha1.MigrationConfiguration)
-						}
-						b.migrationConfigurations[from][to] = config
-					},
-					DeleteMigrationConfiguration: func(from metav1.GroupVersionKind, to metav1.GroupVersionKind) {
-						b.lock.Lock()
-						defer b.lock.Unlock()
-						delete(b.migrationConfigurations[from], to)
-						if len(b.migrationConfigurations[from]) == 0 {
-							delete(b.migrationConfigurations, from)
-						}
-					},
-				}),
-		); err != nil {
-		return nil, fmt.Errorf("failed to create migration configuration reconciler: %w", err)
+
+	migrationConfigOptions := migration.ConfigurationOptions{
+		GetCluster:           mgr.GetCluster,
+		ControllerNamePrefix: name,
+		SetMigrationConfiguration: func(from metav1.GroupVersionKind, to metav1.GroupVersionKind, config brokerv1alpha1.MigrationConfiguration) {
+			b.lock.Lock()
+			defer b.lock.Unlock()
+			if _, ok := b.migrationConfigurations[from]; !ok {
+				b.migrationConfigurations[from] = make(map[metav1.GroupVersionKind]brokerv1alpha1.MigrationConfiguration)
+			}
+			b.migrationConfigurations[from][to] = config
+		},
+		DeleteMigrationConfiguration: func(from metav1.GroupVersionKind, to metav1.GroupVersionKind) {
+			b.lock.Lock()
+			defer b.lock.Unlock()
+			delete(b.migrationConfigurations[from], to)
+			if len(b.migrationConfigurations[from]) == 0 {
+				delete(b.migrationConfigurations, from)
+			}
+		},
 	}
 
-	if err := mcbuilder.ControllerManagedBy(mgr).
-		Named(name + "-migration").
-		For(&brokerv1alpha1.Migration{}).
-		Complete(
-			migration.MigrationReconcilerFunc(migration.MigrationOptions{
-				Compute:                b.compute,
-				GetCoordinationCluster: mgr.GetCluster,
-				GetProviderCluster:     mgr.GetCluster,
-				GetMigrationConfiguration: func(fromGVK metav1.GroupVersionKind, toGVK metav1.GroupVersionKind) (brokerv1alpha1.MigrationConfiguration, bool) {
-					b.lock.RLock()
-					defer b.lock.RUnlock()
-					toMap, ok := b.migrationConfigurations[fromGVK]
-					if !ok {
-						return brokerv1alpha1.MigrationConfiguration{}, false
-					}
-					v, ok := toMap[toGVK]
-					return v, ok
-				},
-			}),
-		); err != nil {
+	if err := migration.SetupConfigurationController(mgr, migrationConfigOptions); err != nil {
 		return nil, fmt.Errorf("failed to create migration reconciler: %w", err)
 	}
+
+	migrationOptions := migration.MigrationOptions{
+		Compute:                b.compute,
+		GetCoordinationCluster: mgr.GetCluster,
+		GetProviderCluster:     mgr.GetCluster,
+		ControllerNamePrefix:   name,
+		GetMigrationConfiguration: func(fromGVK metav1.GroupVersionKind, toGVK metav1.GroupVersionKind) (brokerv1alpha1.MigrationConfiguration, bool) {
+			b.lock.RLock()
+			defer b.lock.RUnlock()
+			toMap, ok := b.migrationConfigurations[fromGVK]
+			if !ok {
+				return brokerv1alpha1.MigrationConfiguration{}, false
+			}
+			v, ok := toMap[toGVK]
+			return v, ok
+		},
+	}
+
+	if err := migration.SetupController(mgr, migrationOptions); err != nil {
+		return nil, fmt.Errorf("failed to create migration reconciler: %w", err)
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Generic Sync Controllers
 
 	genericOpts := genericreconciler.Options{
 		CoordinationClient:   b.coordination,
