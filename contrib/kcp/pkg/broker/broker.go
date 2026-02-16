@@ -32,7 +32,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -50,7 +49,7 @@ import (
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	kcpacceptapi "github.com/platform-mesh/resource-broker/contrib/kcp/pkg/acceptapi"
 	"github.com/platform-mesh/resource-broker/pkg/broker"
-	brokergeneric "github.com/platform-mesh/resource-broker/pkg/generic"
+	genericreconciler "github.com/platform-mesh/resource-broker/pkg/broker/generic"
 	"github.com/platform-mesh/resource-broker/pkg/migration"
 )
 
@@ -340,8 +339,9 @@ func New(opts Options) (*Broker, error) { //nolint:gocyclo
 	}
 	b.managers["general"] = generalMgr
 
-	genericOpts := brokergeneric.Options{
-		Coordination: migrationClient,
+	genericOpts := genericreconciler.Options{
+		CoordinationClient:   migrationClient,
+		ControllerNamePrefix: b.opts.Name,
 		GetProviderCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
 			if !strings.HasPrefix(clusterName, broker.ProviderPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a provider cluster: %w", clusterName, multicluster.ErrClusterNotFound)
@@ -386,12 +386,7 @@ func New(opts Options) (*Broker, error) { //nolint:gocyclo
 	}
 
 	for _, gvk := range broker.ParseKinds(b.opts.WatchKinds) {
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(gvk)
-		if err := mcbuilder.ControllerManagedBy(generalMgr).
-			Named(b.opts.Name + "-generic-" + gvk.String()).
-			For(obj).
-			Complete(brokergeneric.ReconcileFunc(genericOpts, gvk)); err != nil {
+		if err := genericreconciler.SetupController(generalMgr, gvk, genericOpts); err != nil {
 			return nil, fmt.Errorf("failed to create generic reconciler for %v: %w", gvk, err)
 		}
 	}

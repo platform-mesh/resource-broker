@@ -26,7 +26,6 @@ import (
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/discovery"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -171,7 +170,8 @@ func NewBroker(
 	}
 
 	genericOpts := genericreconciler.Options{
-		Coordination: b.coordination,
+		CoordinationClient:   b.coordination,
+		ControllerNamePrefix: name,
 		GetProviderCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
 			if !strings.HasPrefix(clusterName, ProviderPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a provider cluster: %w", clusterName, multicluster.ErrClusterNotFound)
@@ -214,12 +214,7 @@ func NewBroker(
 	}
 
 	for _, gvk := range ParseKinds(watchKinds) {
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(gvk)
-		if err := mcbuilder.ControllerManagedBy(mgr).
-			Named(name + "-generic-" + gvk.String()).
-			For(obj).
-			Complete(genericreconciler.ReconcileFunc(genericOpts, gvk)); err != nil {
+		if err := genericreconciler.SetupController(mgr, gvk, genericOpts); err != nil {
 			return nil, fmt.Errorf("failed to create generic reconciler for %v: %w", gvk, err)
 		}
 	}
