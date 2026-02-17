@@ -130,7 +130,7 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
-      - uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1
+      - uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
         with:
           # Only install kind without setting up any clusters. Clusters
           # will be created as needed in the examples.
