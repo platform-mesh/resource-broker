@@ -115,30 +115,46 @@ kubectl kcp crd snapshot --prefix current --output yaml \
 Update the content configuration:
 
 ```bash
-content="$(yq -P -o yaml . ./examples/platform-mesh/example.platform-mesh.io/content-configuration.json)"
+content="$(yq -P -o yaml . ./examples/platform-mesh/root:providers:resource-broker/content-configuration.json)"
 
 content="$content" yq -i '.spec.inlineConfiguration.content = strenv(content)' \
-    ./examples/platform-mesh/example.platform-mesh.io/content-configuration.yaml
+    ./examples/platform-mesh/root:providers:resource-broker/content-configuration.yaml
 ```
 
 And then kustomize the APIExports, RBAC and Platform Mesh resources:
 
 ```bash
-KUBECONFIG="$PM_KUBECONFIG" kubectl apply -k ./examples/platform-mesh/example.platform-mesh.io
+KUBECONFIG="$PM_KUBECONFIG" kubectl apply -k ./examples/platform-mesh/root:providers:resource-broker
 ```
 
 Now the Certificate will show up in the marketplace and users can bind it.
 
+### Start the broker
+
+```bash ci
+./examples/platform-mesh/run.bash start-broker "$COMPUTE_KUBECONFIG" "$PM_KUBECONFIG"
+```
+
+
 ## Provider setup
 
-Follow the steps in the [kcp-certs](/examples/kcp-certs) example to set
-up the providers interacting with resource-broker.
+Setup the providers backing the certificate:
 
-Deploy the providers with their own workspace, i.e.
-`:root:provider:internalca` and `:root:provider:externalca` and target
-the resource-broker provider workspace `:root:provider:resource-broker`
-instead of the `:root:platform` workspace.
+```bash
+./examples/platform-mesh/run.bash setup-provider internalca internal.corp "$PM_KUBECONFIG" "$COMPUTE_KUBECONFIG"
+./examples/platform-mesh/run.bash setup-provider externalca corp.com "$PM_KUBECONFIG" "$COMPUTE_KUBECONFIG"
+```
 
 <!--
 TODO register content configurations etcpp for internalca/externalca?
 -->
+
+## Consumer
+
+Create a consumer org and account and bind the brokered APIs into it. If
+the stuff doesn't show in the UI just use kubectl to create
+a certificate in the account workspace.
+
+```bash
+kubectl apply -f ./examples/platform-mesh/cert.yaml
+```

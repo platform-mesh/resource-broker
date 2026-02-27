@@ -1,0 +1,6 @@
+apiVersion: example.platform-mesh.io/v1alpha1
+kind: Certificate
+metadata:
+  name: cert-from-consumer
+spec:
+  fqdn: app.internal.corp

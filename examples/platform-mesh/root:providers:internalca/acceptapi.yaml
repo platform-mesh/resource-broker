@@ -1,0 +1,14 @@
+apiVersion: broker.platform-mesh.io/v1alpha1
+kind: AcceptAPI
+metadata:
+  annotations:
+    broker.platform-mesh.io/secret-name: kubeconfig-internalca
+  name: acceptapis.broker.platform-mesh.io
+spec:
+  filters:
+  - key: fqdn
+    suffix: internal.corp
+  gvr:
+    group: example.platform-mesh.io
+    resource: certificates
+    version: v1alpha1

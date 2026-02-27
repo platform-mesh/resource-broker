@@ -1,0 +1,28 @@
+apiVersion: operator.broker.platform-mesh.io/v1alpha1
+kind: Broker
+metadata:
+  name: resource-broker
+  namespace: resource-broker-system
+spec:
+  image:
+    repository: resource-broker-kcp
+    tag: platform-mesh
+  hostAliases:
+    - ip: 10.96.188.4 # hardcoded in pm local-setup
+      hostnames:
+        - localhost
+  extraArgs:
+    - "-kubeconfig=/kubeconfig/kubeconfig"
+    - "-kcp-kubeconfig=/kubeconfig/kubeconfig"
+    - "-acceptapi=acceptapis"
+    - "-brokerapi=certificates"
+    - "-zap-devel=true"
+    - "-watch-kind=Certificate.v1alpha1.example.platform-mesh.io"
+  volumes:
+    - name: kubeconfig-volume
+      secret:
+        secretName: kcp-kubeconfig
+  volumeMounts:
+    - name: kubeconfig-volume
+      mountPath: /kubeconfig
+      readOnly: true

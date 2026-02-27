@@ -1,0 +1,15 @@
+apiVersion: apis.kcp.io/v1alpha2
+kind: APIBinding
+metadata:
+  name: acceptapis
+spec:
+  reference:
+    export:
+      path: root:providers:resource-broker
+      name: acceptapis
+  permissionClaims:
+    - resource: secrets
+      state: Accepted
+      verbs: ["*"]
+      selector:
+        matchAll: true

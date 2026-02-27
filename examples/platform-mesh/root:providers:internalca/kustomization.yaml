@@ -1,0 +1,3 @@
+resources:
+  - bind-acceptapis.yaml
+  - acceptapi.yaml
