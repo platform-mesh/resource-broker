@@ -210,6 +210,28 @@ spec:
                 items:
                   type: string
                 type: array
+              hostAliases:
+                description: |-
+                  HostAliases is a list of hosts and IPs that will be injected into the pod's
+                  hosts file. This is used to resolve hostnames from within the pod.
+                items:
+                  description: |-
+                    HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the
+                    pod's hosts file.
+                  properties:
+                    hostnames:
+                      description: Hostnames for the above IP address.
+                      items:
+                        type: string
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    ip:
+                      description: IP address of the host file entry.
+                      type: string
+                  required:
+                  - ip
+                  type: object
+                type: array
               image:
                 description: Image is the container image for the broker deployment.
                 properties:

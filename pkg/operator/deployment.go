@@ -57,6 +57,7 @@ func updateDeployment(scheme *runtime.Scheme, broker *operatorv1alpha1.Broker, d
 	deployment.Spec.Replicas = &replicas
 
 	deployment.Spec.Template.Spec.Volumes = broker.Spec.Volumes
+	deployment.Spec.Template.Spec.HostAliases = broker.Spec.HostAliases
 	deployment.Spec.Template.Spec.Containers = []corev1.Container{{
 		Name:            broker.Name,
 		Image:           buildImageRef(broker.Spec.Image),

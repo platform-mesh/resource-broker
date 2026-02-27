@@ -103,6 +103,13 @@ func (in *BrokerSpec) DeepCopyInto(out *BrokerSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.HostAliases != nil {
+		in, out := &in.HostAliases, &out.HostAliases
+		*out = make([]v1.HostAlias, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]v1.EnvVar, len(*in))

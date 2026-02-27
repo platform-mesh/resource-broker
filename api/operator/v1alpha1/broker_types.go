@@ -68,6 +68,11 @@ type BrokerSpec struct {
 	// +optional
 	ExtraArgs []string `json:"extraArgs,omitempty"`
 
+	// HostAliases is a list of hosts and IPs that will be injected into the pod's
+	// hosts file. This is used to resolve hostnames from within the pod.
+	// +optional
+	HostAliases []corev1.HostAlias `json:"hostAliases,omitempty"`
+
 	// Env is a list of environment variables to set in the container.
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
