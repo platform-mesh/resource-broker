@@ -321,6 +321,8 @@ apisyncagent::publish() {
         if [[ -n "$PROJECTION_GROUP" ]]; then
             echo "  projection:"
             echo "    group: $PROJECTION_GROUP"
+            echo "  naming:"
+            echo "    namespace: $AGENT_NAME-{{.ClusterName}}"
         fi
         echo "  related:"
         while [[ "$#" -gt 0 ]]; do
