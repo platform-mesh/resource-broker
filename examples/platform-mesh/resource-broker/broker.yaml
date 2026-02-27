@@ -15,7 +15,7 @@ spec:
     - "-kubeconfig=/kubeconfig/kubeconfig"
     - "-kcp-kubeconfig=/kubeconfig/kubeconfig"
     - "-acceptapi=acceptapis"
-    - "-brokerapi=certificates"
+    - "-brokerapi=example.platform-mesh.io"
     - "-zap-devel=true"
     - "-watch-kind=Certificate.v1alpha1.example.platform-mesh.io"
   volumes:
