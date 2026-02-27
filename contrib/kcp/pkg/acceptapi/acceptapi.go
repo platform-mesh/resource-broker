@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -219,6 +220,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req mcreconcile.Request) (mc
 	if err != nil {
 		log.Error(err, "Error creating VW cluster")
 		return mctrl.Result{}, err
+	}
+
+	// Force discovery cache population by querying the RESTMapper
+	// This ensures the discovery cache knows about the resources before we add the cluster to the provider
+	// We use KindFor which will trigger a full API discovery if the cache is empty
+	_, err = vwCluster.GetRESTMapper().KindFor(schema.GroupVersionResource{
+		Group:    gvr.Group,
+		Version:  gvr.Version,
+		Resource: gvr.Resource,
+	})
+	if err != nil {
+		log.Info("Discovery cache refresh failed, will retry", "error", err.Error(), "gvr", gvr)
+		// Don't fail here - the resource might not be immediately available
+		// The controller will retry and eventually succeed
+	} else {
+		log.Info("Successfully populated discovery cache", "gvr", gvr)
 	}
 
 	log.Info("Adding VW cluster to provider")
