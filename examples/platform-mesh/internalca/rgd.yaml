@@ -45,7 +45,7 @@ spec:
             remote-object-name: ${schema.metadata.?annotations["syncagent.kcp.io/remote-object-name"]}
             remote-object-namespace: ${schema.metadata.?annotations["syncagent.kcp.io/remote-object-namespace"]}
           name: ${schema.metadata.name}
-          namespace: internalca-${schema.metadata.namespace}
+          namespace: ${schema.metadata.namespace}
         spec:
           commonName: ${schema.spec.fqdn}
           secretName: ${schema.metadata.?annotations["syncagent.kcp.io/remote-object-name"]}
@@ -63,4 +63,4 @@ spec:
         kind: Secret
         metadata:
           name: ${certificate.metadata.?annotations["remote-object-name"]}
-          namespace: internalca-${certificate.metadata.namespace}
+          namespace: ${certificate.metadata.namespace}

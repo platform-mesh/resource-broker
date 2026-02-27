@@ -11,10 +11,9 @@ spec:
       schema: current.certificates.example.platform-mesh.io
       storage:
         crd: {}
-  # permissionClaims:
-  #   - resource: secrets
-  #     verbs:
-  #       - "*"
+  permissionClaims:
+    - resource: secrets
+      verbs: ["*"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
