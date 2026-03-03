@@ -33,12 +33,15 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	mchandler "sigs.k8s.io/multicluster-runtime/pkg/handler"
 	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
@@ -70,9 +73,39 @@ func SetupController(mgr mctrl.Manager, gvk schema.GroupVersionKind, opts Option
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
 
+	// providerEventHandler maps events from provider resources back to the
+	// consumer resource that owns them. This enables status updates on the
+	// provider side to trigger reconciliation and sync status back to consumer.
+	providerEventHandler := mchandler.TypedEnqueueRequestsFromMapFunc[client.Object, mctrl.Request](
+		func(ctx context.Context, obj client.Object) []mctrl.Request {
+			annotations := obj.GetAnnotations()
+			if annotations == nil {
+				return nil
+			}
+			consumerCluster, ok := annotations[consumerClusterAnn]
+			if !ok || consumerCluster == "" {
+				return nil
+			}
+			consumerName, ok := annotations[consumerNameAnn]
+			if !ok || consumerName == "" {
+				return nil
+			}
+			return []mctrl.Request{{
+				ClusterName: consumerCluster,
+				Request: reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: obj.GetNamespace(),
+						Name:      consumerName,
+					},
+				},
+			}}
+		},
+	)
+
 	return mctrl.NewControllerManagedBy(mgr).
-		Named(opts.ControllerNamePrefix + "-generic-" + gvk.String()).
+		Named(opts.ControllerNamePrefix+"-generic-"+gvk.String()).
 		For(obj).
+		Watches(obj, providerEventHandler).
 		Complete(mcreconcile.Func(func(ctx context.Context, req mctrl.Request) (mctrl.Result, error) {
 			task := &objectReconcileTask{
 				opts: opts,
@@ -138,6 +171,7 @@ func (t *objectReconcileTask) consumerNamespacedName() types.NamespacedName {
 }
 
 func (t *objectReconcileTask) Run(ctx context.Context) (mctrl.Result, error) {
+	t.log = logr.FromContextOrDiscard(ctx).WithValues("gvk", t.gvk, "name", t.req.NamespacedName, "cluster", t.req.ClusterName)
 	t.log.Info("Reconciling generic resource")
 
 	cont, err := t.determineClusters(ctx)
@@ -712,28 +746,34 @@ func (t *objectReconcileTask) migrate(ctx context.Context, consumerObj *unstruct
 }
 
 func (t *objectReconcileTask) decorateInProvider(ctx context.Context, providerName string, providerCluster cluster.Cluster) error {
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(t.gvk)
-	if err := providerCluster.GetClient().Get(ctx, t.providerNamespacedName(), obj); err != nil {
-		return fmt.Errorf("failed to get resource from provider cluster %q: %w", providerName, err)
-	}
-
-	if controllerutil.AddFinalizer(obj, genericFinalizer) {
-		if err := providerCluster.GetClient().Update(ctx, obj); err != nil {
-			return fmt.Errorf("failed to add finalizer in provider: %w", err)
-		}
-	}
-
 	consumerNN := t.consumerNamespacedName()
-	anns := obj.GetAnnotations()
-	if anns[consumerClusterAnn] != t.consumerName || anns[consumerNameAnn] != consumerNN.Name {
-		kubernetes.SetAnnotation(obj, consumerClusterAnn, t.consumerName)
-		kubernetes.SetAnnotation(obj, consumerNameAnn, consumerNN.Name)
-		if err := providerCluster.GetClient().Update(ctx, obj); err != nil {
-			return fmt.Errorf("failed to set annotations in provider: %w", err)
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(t.gvk)
+		if err := providerCluster.GetClient().Get(ctx, t.providerNamespacedName(), obj); err != nil {
+			return fmt.Errorf("failed to get resource from provider cluster %q: %w", providerName, err)
 		}
-	}
-	return nil
+
+		needsUpdate := false
+		if controllerutil.AddFinalizer(obj, genericFinalizer) {
+			needsUpdate = true
+		}
+
+		anns := obj.GetAnnotations()
+		if anns[consumerClusterAnn] != t.consumerName || anns[consumerNameAnn] != consumerNN.Name {
+			kubernetes.SetAnnotation(obj, consumerClusterAnn, t.consumerName)
+			kubernetes.SetAnnotation(obj, consumerNameAnn, consumerNN.Name)
+			needsUpdate = true
+		}
+
+		if needsUpdate {
+			if err := providerCluster.GetClient().Update(ctx, obj); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (t *objectReconcileTask) providerAcceptsObj(ctx context.Context) (bool, error) {
@@ -759,7 +799,7 @@ func (t *objectReconcileTask) providerAcceptsObj(ctx context.Context) (bool, err
 }
 
 func (t *objectReconcileTask) syncResource(ctx context.Context, providerName string, providerCluster cluster.Cluster) error {
-	t.log.Info("Syncing resource between consumer and provider cluster")
+	t.log.Info("SYNC_V2: Syncing resource between consumer and provider cluster")
 	// TODO send conditions back to consumer cluster
 	// TODO there should be two informers triggering this - one
 	// for consumer and one for provider

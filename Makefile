@@ -2,6 +2,7 @@
 IMG ?= resource-broker:dev
 IMG_KCP ?= resource-broker-kcp:dev
 IMG_OPERATOR ?= resource-broker-operator:dev
+IMG_PORTAL ?= resource-broker-portal:dev
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -52,6 +53,7 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd rbac:roleName=resource-broker output:crd:dir=config/broker/crd output:rbac:dir=config/broker/rbac paths="./api/broker/..."
+	$(CONTROLLER_GEN) crd rbac:roleName=resource-broker output:crd:dir=config/generic/crd output:rbac:dir=config/generic/rbac paths="./api/generic/..."
 	$(CONTROLLER_GEN) crd rbac:roleName=resource-broker-example output:crd:dir=config/example/crd output:rbac:dir=config/example/rbac paths="./api/example/..."
 	$(CONTROLLER_GEN) crd rbac:roleName=resource-broker-operator output:crd:dir=config/operator/crd output:rbac:dir=config/operator/rbac paths="./api/operator/..."
 
@@ -147,11 +149,18 @@ docker-build: ## Build docker image with the manager.
 
 .PHONY: docker-build-kcp
 docker-build-kcp: ## Build docker image with the operator for kcp.
-	$(CONTAINER_TOOL) build -t ${IMG_KCP} -f contrib/kcp/Dockerfile .
+	$(CONTAINER_TOOL) build -t ${IMG_KCP} \
+		--build-arg GIT_COMMIT=$$(git rev-parse --short HEAD) \
+		--build-arg BUILD_TIME=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+		-f contrib/kcp/Dockerfile .
 
 .PHONY: docker-build-operator
 docker-build-operator: ## Build docker image with the operator.
 	$(CONTAINER_TOOL) build -t ${IMG_OPERATOR} -f cmd/operator/Dockerfile .
+
+.PHONY: docker-build-portal
+docker-build-portal: ## Build docker image with the portal.
+	$(CONTAINER_TOOL) build -t ${IMG_PORTAL} -f examples/platform-mesh/portal/Dockerfile examples/platform-mesh/portal
 
 KIND_CLUSTER ?= kind
 
@@ -166,6 +175,10 @@ kind-load-kcp: ## Load docker image with the operator for kcp into kind cluster.
 .PHONY: kind-load-operator
 kind-load-operator: ## Load docker image with the operator into kind cluster. Set cluster name with KIND_CLUSTER.
 	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_OPERATOR}"
+
+.PHONY: kind-load-portal
+kind-load-portal: ## Load docker image with the portal into kind cluster. Set cluster name with KIND_CLUSTER.
+	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_PORTAL}"
 
 ##@ Deployment
 
@@ -213,6 +226,12 @@ deploy-operator: manifests kustomize ## Deploy operator.
 	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
 	$(KUSTOMIZE) build config/operator/default | $(KUBECTL) apply -f -
 
+.PHONY: deploy-pm-portal
+deploy-pm-portal: kustomize ## Deploy platform-mesh portal.
+	cd examples/platform-mesh/portal/deploy && $(KUSTOMIZE) edit set image resource-broker-portal=${IMG_PORTAL}
+	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build examples/platform-mesh/portal/deploy | $(KUBECTL) apply -f -
+
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy broker.
 	$(KUSTOMIZE) build config/broker/default | $(KUBECTL) delete --ignore-not-found=true -f -
@@ -224,6 +243,10 @@ undeploy-example: kustomize ## Undeploy example.
 .PHONY: undeploy-operator
 undeploy-operator: kustomize ## Undeploy operator.
 	$(KUSTOMIZE) build config/operator/default | $(KUBECTL) delete --ignore-not-found=true -f -
+
+.PHONY: undeploy-pm-portal
+undeploy-pm-portal: kustomize ## Undeploy platform-mesh portal.
+	$(KUSTOMIZE) build examples/platform-mesh/portal/deploy | $(KUBECTL) delete --ignore-not-found=true -f -
 
 ##@ Dependencies
 

@@ -32,6 +32,7 @@ import (
 	mctrl "sigs.k8s.io/multicluster-runtime"
 
 	kcpbroker "github.com/platform-mesh/resource-broker/contrib/kcp/pkg/broker"
+	"github.com/platform-mesh/resource-broker/pkg/version"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -82,6 +83,8 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("Starting resource-broker", "version", version.Info())
 
 	ctx := mctrl.SetupSignalHandler()
 

@@ -20,6 +20,7 @@ package sync
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -86,6 +88,8 @@ func CopyResource(
 	sourceName, targetName types.NamespacedName,
 	source, target client.Client,
 ) (metav1.Condition, error) {
+	log := logr.FromContextOrDiscard(ctx).WithValues("sourceName", sourceName, "targetName", targetName)
+
 	sourceObj := &unstructured.Unstructured{}
 	sourceObj.SetGroupVersionKind(gvk)
 
@@ -109,29 +113,55 @@ func CopyResource(
 	}
 
 	if !EqualObjects(sourceObj, existing) {
+		log.V(2).Info("Objects not equal, updating target")
 		// TODO this only copies fields from source to target, omitting
 		// if source deletes a field that exists in target.
 		// A more robust merge strategy would be better.
-		toUpdate := existing.DeepCopy()
-		for k, v := range sourceObj.Object {
-			if k == "metadata" || k == "status" {
-				continue
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// Re-fetch the target object to get the latest resourceVersion
+			if err := target.Get(ctx, targetName, existing); err != nil {
+				return err
 			}
-			toUpdate.Object[k] = v
-		}
-		if err := target.Update(ctx, toUpdate); err != nil {
+			toUpdate := existing.DeepCopy()
+			for k, v := range sourceObj.Object {
+				if k == "metadata" || k == "status" {
+					continue
+				}
+				toUpdate.Object[k] = v
+			}
+			return target.Update(ctx, toUpdate)
+		})
+		if err != nil {
 			return makeCond(ConditionResourceCopied, false, "UpdateFailed", err.Error()), err
 		}
-		return makeCond(ConditionResourceCopied, true, "Updated", "Resource updated on destination"), nil
+		// After updating, re-fetch target to get updated status for sync
+		if err := target.Get(ctx, targetName, existing); err != nil {
+			return makeCond(ConditionResourceCopied, false, "GetTargetFailed", err.Error()), err
+		}
 	}
+
+	log.Info("Checking status sync",
+		"targetHasStatus", existing.Object["status"] != nil,
+		"sourceHasStatus", sourceObj.Object["status"] != nil)
 
 	if status, ok := existing.Object["status"]; ok {
 		if !cmp.Equal(sourceObj.Object["status"], status, cmpopts.EquateEmpty()) {
+			log.Info("Syncing status from target to source")
+			// Re-fetch source to get latest resourceVersion before status update
+			if err := source.Get(ctx, sourceName, sourceObj); err != nil {
+				return makeCond(ConditionStatusSynced, false, "GetSourceFailed", err.Error()), err
+			}
 			sourceObj.Object["status"] = status
 			if err := source.Status().Update(ctx, sourceObj); err != nil {
+				log.Error(err, "Failed to update status on source")
 				return makeCond(ConditionStatusSynced, false, "StatusUpdateFailed", err.Error()), err
 			}
+			log.Info("Status synced successfully")
+		} else {
+			log.V(2).Info("Status already equal, no update needed")
 		}
+	} else {
+		log.Info("Target has no status to sync")
 	}
 
 	return makeCond(ConditionStatusSynced, true, "StatusSynced", "Status copied back to source"), nil
