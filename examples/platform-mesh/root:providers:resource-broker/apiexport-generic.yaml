@@ -1,14 +1,19 @@
 apiVersion: apis.kcp.io/v1alpha2
 kind: APIExport
 metadata:
-  name: example.platform-mesh.io
+  name: generic.platform-mesh.io
   labels:
-    ui.platform-mesh.io/content-for: example.platform-mesh.io
+    ui.platform-mesh.io/content-for: generic.platform-mesh.io
 spec:
   resources:
-    - group: example.platform-mesh.io
+    - group: pki.generic.platform-mesh.io
       name: certificates
-      schema: current.certificates.example.platform-mesh.io
+      schema: current.certificates.pki.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: compute.generic.platform-mesh.io
+      name: virtualmachines
+      schema: current.virtualmachines.compute.generic.platform-mesh.io
       storage:
         crd: {}
   permissionClaims:
@@ -18,7 +23,7 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: certificates-apiexport-bind
+  name: generic-apiexport-bind
 rules:
   - apiGroups:
       - apis.kcp.io
@@ -27,17 +32,17 @@ rules:
     verbs:
       - bind
     resourceNames:
-      - example.platform-mesh.io
+      - generic.platform-mesh.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: certificates-anonymous-bind
+  name: generic-apiexport-anonymous-bind
 subjects:
   - kind: User
     name: system:anonymous
     apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
-  name: certificates-apiexport-bind
+  name: generic-apiexport-bind
   apiGroup: rbac.authorization.k8s.io

@@ -3,9 +3,33 @@ kind: ContentConfiguration
 metadata:
   labels:
     ui.platform-mesh.io/entity: core_platform-mesh_io_account
-    ui.platform-mesh.io/content-for: example.platform-mesh.io
-  name: example.platform-mesh.io-ui
+    ui.platform-mesh.io/content-for: generic.platform-mesh.io
+  name: resource-broker-ui
 spec:
   inlineConfiguration:
+    content: |-
+      {
+          "name": "resource-broker-ui",
+          "luigiConfigFragment": {
+              "data": {
+                  "nodes": [
+                      {
+                          "pathSegment": "generic-apis",
+                          "label": "Generic APIs Broker",
+                          "hideFromNav": false,
+                          "icon": "database",
+                          "url": "http://localhost:4301/index.html#/services",
+                          "entityType": "main.core_platform-mesh_io_account",
+                          "order": 900,
+                          "loadingIndicator": {
+                              "enabled": true
+                          },
+                          "context": {
+                              "accountId": ":core_platform-mesh_io_accountId"
+                          }
+                      }
+                  ]
+              }
+          }
+      }
     contentType: json
-    content: "name: certificates\nluigiConfigFragment:\n  data:\n    nodes:\n      - url: /assets/platform-mesh-portal-ui-wc.js#generic-list-view\n        webcomponent:\n          selfRegistered: true\n        navigationContext: example_platform-mesh_io_certificates\n        label: Certificates\n        pathSegment: example_platform-mesh_io_certificates\n        icon: person-placeholder\n        order: 800\n        entityType: main.core_platform-mesh_io_account.namespace\n        loadingIndicator:\n          enabled: false\n        keepSelectedForChildren: true\n        context:\n          resourceDefinition:\n            group: example.platform-mesh.io\n            plural: certificates\n            singular: certificate\n            kind: Certificate\n            version: v1alpha1\n            scope: Namespaced\n            namespace: null\n            ui:\n              logoUrl: https://www.kcp.io/icons/logo.svg\n              listView:\n                fields:\n                  - label: Name\n                    property: metadata.name\n                  - label: FQDN\n                    property: spec.fqdn\n              detailView:\n                fields:\n                  - label: Name\n                    property: metadata.name\n                  - label: FQDN\n                    property: spec.fqdn\n              createView:\n                fields:\n                  - label: Name\n                    property: metadata.name\n                    required: true\n                  - label: FQDN\n                    property: spec.fqdn\n                    required: true\n        children:\n          - pathSegment: :certificateId\n            hideFromNav: true\n            keepSelectedForChildren: false\n            defineEntity:\n              id: example_platform-mesh_io_certificate\n              contextKey: certificateId\n              graphqlEntity:\n                group: example_platform-mesh_io\n                kind: Certificate\n                query: '{ metadata { name } }'\n            context:\n              accountId: :accountId\n              namespaceId: :namespaceId\n              resourceId: :certificateId\n      - entityType: main.core_platform-mesh_io_account.namespace.example_platform-mesh_io_certificate\n        pathSegment: dashboard\n        label: Dashboard\n        url: /assets/platform-mesh-portal-ui-wc.js#generic-detail-view\n        webcomponent:\n          selfRegistered: true\n        defineEntity:\n          id: dashboard\n        compound:\n          children: []"

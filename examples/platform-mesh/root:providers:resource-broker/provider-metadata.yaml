@@ -1,11 +1,13 @@
 apiVersion: ui.platform-mesh.io/v1alpha1
 kind: ProviderMetadata
 metadata:
-  name: example.platform-mesh.io
+  name: generic.platform-mesh.io
 spec:
-  displayName: Example brokered APIs
+  displayName: Generic APIs Broker
   description: |
-    Example APIs that can be backed by different providers.
+    This provider offers generic APIs for resources such as certificates and virtual machines.
+    It serves as a bridge to integrate various resource types into the Platform Mesh ecosystem, 
+    enabling users to manage and interact with these resources through a unified interface.
   contacts:
   - displayName: Platform Mesh Team
     email: resource-broker@platform-mesh.io

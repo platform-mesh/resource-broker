@@ -14,7 +14,7 @@ Set two environment variables - one for the Platform Mesh instance and
 one for the compute cluster:
 
 ```bash
-cp ../platform-mesh-helm-charts/.secret/kcp/admin.kubeconfig kcp-admin.kubeconfig
+cp ../helm-charts/.secret/kcp/admin.kubeconfig kcp-admin.kubeconfig
 export PM_KUBECONFIG="$(realpath kcp-admin.kubeconfig)"
 kind export kubeconfig --name platform-mesh --kubeconfig compute.kubeconfig
 export COMPUTE_KUBECONFIG="$(realpath compute.kubeconfig)"
@@ -36,10 +36,10 @@ load them into the kind cluster:
 ```bash ci
 export IMG_KCP=resource-broker-kcp:platform-mesh
 export IMG_OPERATOR=resource-broker-operator:platform-mesh
+export IMG_PORTAL=resource-broker-portal:platform-mesh
 
-make docker-build-kcp docker-build-operator
-
-make kind-load-kcp kind-load-operator KIND_CLUSTER=platform-mesh
+make docker-build-kcp docker-build-operator docker-build-portal
+make kind-load-kcp kind-load-operator kind-load-portal KIND_CLUSTER=platform-mesh
 ```
 
 ### Deploy operator
@@ -48,6 +48,14 @@ Deploy the operator and its resources into the kind cluster:
 
 ```bash ci
 make deploy-operator KUBECONFIG="$COMPUTE_KUBECONFIG"
+```
+
+### Deploy portal
+
+Deploy the portal into the kind cluster:
+
+```bash ci
+make deploy-pm-portal KUBECONFIG="$COMPUTE_KUBECONFIG"
 ```
 
 ## resource-broker setup in Platform Mesh
@@ -105,23 +113,18 @@ Create the APIResourcheSchema for Certificate and AcceptAPI:
 
 ```bash
 kubectl kcp crd snapshot --prefix current --output yaml \
-    -f ./config/example/crd/example.platform-mesh.io_certificates.yaml \
+    -f ./config/generic/crd/compute.generic.platform-mesh.io_virtualmachines.yaml \
+    | KUBECONFIG="$PM_KUBECONFIG" kubectl apply -f -
+kubectl kcp crd snapshot --prefix current --output yaml \
+    -f ./config/generic/crd/pki.generic.platform-mesh.io_certificates.yaml \
     | KUBECONFIG="$PM_KUBECONFIG" kubectl apply -f -
 kubectl kcp crd snapshot --prefix current --output yaml \
     -f ./config/broker/crd/broker.platform-mesh.io_acceptapis.yaml \
     | KUBECONFIG="$PM_KUBECONFIG" kubectl apply -f -
 ```
 
-Update the content configuration:
 
-```bash
-content="$(yq -P -o yaml . ./examples/platform-mesh/root:providers:resource-broker/content-configuration.json)"
-
-content="$content" yq -i '.spec.inlineConfiguration.content = strenv(content)' \
-    ./examples/platform-mesh/root:providers:resource-broker/content-configuration.yaml
-```
-
-And then kustomize the APIExports, RBAC and Platform Mesh resources:
+Kustomize the APIExports, RBAC and Platform Mesh resources:
 
 ```bash
 KUBECONFIG="$PM_KUBECONFIG" kubectl apply -k ./examples/platform-mesh/root:providers:resource-broker
@@ -158,3 +161,4 @@ a certificate in the account workspace.
 ```bash
 kubectl apply -f ./examples/platform-mesh/cert.yaml
 ```
+

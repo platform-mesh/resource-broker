@@ -15,9 +15,10 @@ spec:
     - "-kubeconfig=/kubeconfig/kubeconfig"
     - "-kcp-kubeconfig=/kubeconfig/kubeconfig"
     - "-acceptapi=acceptapis"
-    - "-brokerapi=example.platform-mesh.io"
+    - "-brokerapi=generic.platform-mesh.io"
     - "-zap-devel=true"
-    - "-watch-kind=Certificate.v1alpha1.example.platform-mesh.io"
+    - "-zap-log-level=debug"
+    - "-watch-kind=Certificate.v1alpha1.pki.generic.platform-mesh.io"
   volumes:
     - name: kubeconfig-volume
       secret:

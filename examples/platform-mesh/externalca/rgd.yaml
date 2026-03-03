@@ -64,3 +64,5 @@ spec:
         metadata:
           name: ${certificate.metadata.?annotations["remote-object-name"]}
           namespace: ${certificate.metadata.namespace}
+      readyWhen:
+        - ${secret.metadata.name != ""}
