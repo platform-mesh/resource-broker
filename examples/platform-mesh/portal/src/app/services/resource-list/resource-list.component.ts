@@ -34,6 +34,8 @@ import '@ui5/webcomponents-icons/dist/refresh.js';
 import '@ui5/webcomponents-icons/dist/hint.js';
 import '@ui5/webcomponents-icons/dist/it-host.js';
 import '@ui5/webcomponents-icons/dist/locked.js';
+import '@ui5/webcomponents-icons/dist/chain-link.js';
+import '@ui5/webcomponents-icons/dist/edit.js';
 
 import {
   GenericResourceService,
@@ -90,6 +92,10 @@ export class ResourceListComponent implements OnInit {
   // Details dialog
   public showDetailsDialog = signal<boolean>(false);
   public selectedResource = signal<GenericResource | null>(null);
+
+  // Edit mode
+  public isEditMode = signal<boolean>(false);
+  public editCertFqdn = signal<string>('');
 
   private luigiInitialized = false;
   private pendingRouteParams: { group: string; kind: string } | null = null;
@@ -339,12 +345,95 @@ export class ResourceListComponent implements OnInit {
 
   public openDetails(item: GenericResource): void {
     this.selectedResource.set(item);
+    this.isEditMode.set(false);
+    // Initialize edit fields with current values
+    if (this.isCertificate()) {
+      this.editCertFqdn.set(item.spec?.['fqdn'] || '');
+    }
     this.showDetailsDialog.set(true);
   }
 
   public closeDetailsDialog(): void {
     this.showDetailsDialog.set(false);
     this.selectedResource.set(null);
+    this.isEditMode.set(false);
+  }
+
+  public toggleEditMode(): void {
+    const selected = this.selectedResource();
+    if (!selected) return;
+
+    if (!this.isEditMode()) {
+      // Entering edit mode - initialize fields
+      if (this.isCertificate()) {
+        this.editCertFqdn.set(selected.spec?.['fqdn'] || '');
+      }
+    }
+    this.isEditMode.set(!this.isEditMode());
+  }
+
+  public onEditFqdnInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.editCertFqdn.set(input.value);
+  }
+
+  public saveChanges(): void {
+    const resource = this.resource();
+    const selected = this.selectedResource();
+    if (!resource || !selected) return;
+
+    let spec: Record<string, any> = {};
+
+    if (resource.kind === 'Certificate') {
+      const fqdn = this.editCertFqdn().trim();
+      if (!fqdn) {
+        LuigiClient.uxManager().showAlert({
+          text: 'Please enter an FQDN',
+          type: 'warning',
+          closeAfter: 3000,
+        });
+        return;
+      }
+      spec = { fqdn };
+    }
+
+    this.genericResourceService
+      .updateResource(resource, selected.metadata.name, selected.metadata.namespace || 'default', spec)
+      .subscribe({
+        next: (success) => {
+          if (success) {
+            LuigiClient.uxManager().showAlert({
+              text: `${resource.kind} "${selected.metadata.name}" updated successfully`,
+              type: 'success',
+              closeAfter: 3000,
+            });
+            this.isEditMode.set(false);
+            this.closeDetailsDialog();
+            this.loadResources();
+          } else {
+            LuigiClient.uxManager().showAlert({
+              text: `Failed to update ${resource.kind}`,
+              type: 'error',
+              closeAfter: 3000,
+            });
+          }
+        },
+        error: () => {
+          LuigiClient.uxManager().showAlert({
+            text: `Failed to update ${resource.kind}`,
+            type: 'error',
+            closeAfter: 3000,
+          });
+        },
+      });
+  }
+
+  public getProviderCluster(item: GenericResource): string | null {
+    const annotation = item.metadata.annotations?.['broker.platform-mesh.io/provider-cluster'];
+    if (!annotation) return null;
+    // Format: "provider#2y0t8i3qh5kcn20c" -> extract just the ID part after #
+    const parts = annotation.split('#');
+    return parts.length > 1 ? parts[1] : annotation;
   }
 
   public isVirtualMachine(): boolean {
@@ -429,5 +518,45 @@ export class ResourceListComponent implements OnInit {
     const value = item.spec?.[key];
     if (value === undefined || value === null) return '-';
     return String(value);
+  }
+
+  private parseRelatedResources(item: GenericResource): Record<string, any> | null {
+    const relatedResources = item.status?.relatedResources;
+    if (!relatedResources) return null;
+
+    // GraphQL returns relatedResources as a JSON scalar string, so we need to parse it
+    if (typeof relatedResources === 'string') {
+      try {
+        return JSON.parse(relatedResources);
+      } catch {
+        console.error('Failed to parse relatedResources:', relatedResources);
+        return null;
+      }
+    }
+
+    // Already an object
+    return relatedResources;
+  }
+
+  public hasRelatedResources(item: GenericResource): boolean {
+    const parsed = this.parseRelatedResources(item);
+    return !!parsed && Object.keys(parsed).length > 0;
+  }
+
+  public getRelatedResourcesList(item: GenericResource): Array<{
+    key: string;
+    name: string;
+    namespace?: string;
+    gvk?: { group: string; version: string; kind: string };
+  }> {
+    const parsed = this.parseRelatedResources(item);
+    if (!parsed) return [];
+
+    return Object.entries(parsed).map(([key, value]: [string, any]) => ({
+      key,
+      name: value.name || 'Unknown',
+      namespace: value.namespace,
+      gvk: value.gvk,
+    }));
   }
 }

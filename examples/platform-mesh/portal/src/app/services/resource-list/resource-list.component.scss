@@ -259,9 +259,37 @@ ui5-dynamic-page::part(fit-content) {
   border-bottom: 1px solid var(--sapGroup_ContentBorderColor);
   margin-bottom: 0.5rem;
 
-  > div:first-of-type {
+  .header-info {
     flex: 1;
   }
+}
+
+.provider-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--sapInformationBackground);
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+
+  .provider-icon {
+    color: var(--sapInformativeColor);
+  }
+
+  ui5-label {
+    color: var(--sapNeutralTextColor);
+    font-size: 0.75rem;
+  }
+
+  .provider-value {
+    font-weight: 600;
+    font-family: monospace;
+  }
+}
+
+.edit-input {
+  width: 100%;
 }
 
 .details-section {
@@ -341,5 +369,60 @@ ui5-dynamic-page::part(fit-content) {
   .condition-message {
     font-size: 0.8125rem;
     color: var(--sapNeutralTextColor);
+  }
+}
+
+// Related Resources section
+.related-resources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.related-resource-item {
+  padding: 0.75rem;
+  background: var(--sapGroup_ContentBackground);
+  border-radius: 0.25rem;
+  border-left: 3px solid var(--sapInformativeColor);
+
+  .related-resource-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .related-icon {
+    color: var(--sapInformativeColor);
+    font-size: 1rem;
+  }
+
+  .related-resource-key {
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .related-resource-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .related-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+
+    ui5-label {
+      font-size: 0.6875rem;
+      color: var(--sapNeutralTextColor);
+      text-transform: uppercase;
+    }
+
+    ui5-text {
+      font-size: 0.8125rem;
+      word-break: break-all;
+    }
   }
 }

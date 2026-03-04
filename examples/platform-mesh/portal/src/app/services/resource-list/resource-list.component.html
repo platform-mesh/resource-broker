@@ -198,11 +198,27 @@
       <div class="resource-info-header">
         <ui5-avatar size="M" shape="Circle" [initials]="getInitials(selectedResource()!.metadata.name)"
           [colorScheme]="getColorScheme(selectedResource()!.metadata.name)"></ui5-avatar>
-        <div>
+        <div class="header-info">
           <ui5-title level="H5">{{ selectedResource()!.metadata.name }}</ui5-title>
           <ui5-label>{{ selectedResource()!.metadata.namespace || 'default' }}</ui5-label>
         </div>
+        @if (isCertificate()) {
+          <ui5-button
+            [icon]="isEditMode() ? 'decline' : 'edit'"
+            [design]="isEditMode() ? 'Negative' : 'Transparent'"
+            [tooltip]="isEditMode() ? 'Cancel Edit' : 'Edit'"
+            (click)="toggleEditMode()"
+          ></ui5-button>
+        }
       </div>
+
+      @if (getProviderCluster(selectedResource()!)) {
+        <div class="provider-info">
+          <ui5-icon name="connected" class="provider-icon"></ui5-icon>
+          <ui5-label>Provider</ui5-label>
+          <ui5-text class="provider-value">{{ getProviderCluster(selectedResource()!) }}</ui5-text>
+        </div>
+      }
 
       <div class="details-section">
         <ui5-title level="H6">Spec</ui5-title>
@@ -220,7 +236,16 @@
           @if (isCertificate()) {
             <div class="detail-item full-width">
               <ui5-label>FQDN</ui5-label>
-              <ui5-text>{{ getSpecValue(selectedResource()!, 'fqdn') }}</ui5-text>
+              @if (isEditMode()) {
+                <ui5-input
+                  [value]="editCertFqdn()"
+                  (input)="onEditFqdnInput($event)"
+                  placeholder="example.com"
+                  class="edit-input"
+                ></ui5-input>
+              } @else {
+                <ui5-text>{{ getSpecValue(selectedResource()!, 'fqdn') }}</ui5-text>
+              }
             </div>
           }
           <div class="detail-item">
@@ -248,10 +273,53 @@
           </div>
         </div>
       }
+
+      @if (hasRelatedResources(selectedResource()!)) {
+        <div class="details-section">
+          <ui5-title level="H6">Related Resources</ui5-title>
+          <div class="related-resources-list">
+            @for (item of getRelatedResourcesList(selectedResource()!); track item.key) {
+              <div class="related-resource-item">
+                <div class="related-resource-header">
+                  <ui5-icon name="chain-link" class="related-icon"></ui5-icon>
+                  <ui5-text class="related-resource-key">{{ item.key }}</ui5-text>
+                </div>
+                <div class="related-resource-details">
+                  <div class="related-detail">
+                    <ui5-label>Kind</ui5-label>
+                    <ui5-text>{{ item.gvk?.kind || 'Unknown' }}</ui5-text>
+                  </div>
+                  <div class="related-detail">
+                    <ui5-label>Name</ui5-label>
+                    <ui5-text>{{ item.name }}</ui5-text>
+                  </div>
+                  @if (item.namespace) {
+                    <div class="related-detail">
+                      <ui5-label>Namespace</ui5-label>
+                      <ui5-text>{{ item.namespace }}</ui5-text>
+                    </div>
+                  }
+                  @if (item.gvk?.group) {
+                    <div class="related-detail">
+                      <ui5-label>API Group</ui5-label>
+                      <ui5-text>{{ item.gvk?.group }}/{{ item.gvk?.version }}</ui5-text>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
     }
   </div>
 
   <div slot="footer" class="dialog-footer">
-    <ui5-button design="Emphasized" (click)="closeDetailsDialog()">Close</ui5-button>
+    @if (isEditMode()) {
+      <ui5-button design="Transparent" (click)="toggleEditMode()">Cancel</ui5-button>
+      <ui5-button design="Emphasized" (click)="saveChanges()">Save</ui5-button>
+    } @else {
+      <ui5-button design="Emphasized" (click)="closeDetailsDialog()">Close</ui5-button>
+    }
   </div>
 </ui5-dialog>

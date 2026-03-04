@@ -799,10 +799,16 @@ func (t *objectReconcileTask) providerAcceptsObj(ctx context.Context) (bool, err
 }
 
 func (t *objectReconcileTask) syncResource(ctx context.Context, providerName string, providerCluster cluster.Cluster) error {
-	t.log.Info("SYNC_V2: Syncing resource between consumer and provider cluster")
-	// TODO send conditions back to consumer cluster
 	// TODO there should be two informers triggering this - one
 	// for consumer and one for provider
+
+	// Create a status transformer that strips the cluster prefix from
+	// relatedResources names when syncing status from provider to consumer.
+	prefix := SanitizeClusterName(t.consumerName) + "-"
+	statusTransformer := func(status any) any {
+		return t.transformStatusRelatedResources(status, prefix)
+	}
+
 	if cond, err := sync.CopyResource(
 		ctx,
 		t.gvk,
@@ -810,12 +816,64 @@ func (t *objectReconcileTask) syncResource(ctx context.Context, providerName str
 		t.providerNamespacedName(),
 		t.consumerCluster.GetClient(),
 		providerCluster.GetClient(),
+		sync.CopyResourceOptions{StatusTransformer: statusTransformer},
 	); err != nil {
 		t.log.Error(err, "Failed to copy resource to provider cluster", "condition", cond)
 		return err
 	}
 
 	return t.decorateInProvider(ctx, providerName, providerCluster)
+}
+
+// transformStatusRelatedResources transforms the status by stripping the
+// cluster prefix from relatedResources names. This is needed because on
+// the provider side, resource names are prefixed with the hashed consumer
+// cluster name, but on the consumer side they should use the original names.
+func (t *objectReconcileTask) transformStatusRelatedResources(status any, prefix string) any {
+	statusMap, ok := status.(map[string]any)
+	if !ok {
+		return status
+	}
+
+	relatedResources, ok := statusMap["relatedResources"].(map[string]any)
+	if !ok {
+		return status
+	}
+
+	// Deep copy to avoid modifying the original
+	newStatus := make(map[string]any)
+	for k, v := range statusMap {
+		if k == "relatedResources" {
+			continue
+		}
+		newStatus[k] = v
+	}
+
+	newRelatedResources := make(map[string]any)
+	for key, rr := range relatedResources {
+		rrMap, ok := rr.(map[string]any)
+		if !ok {
+			newRelatedResources[key] = rr
+			continue
+		}
+
+		newRR := make(map[string]any)
+		for k, v := range rrMap {
+			if k == "name" {
+				if name, ok := v.(string); ok {
+					if trimmed, found := strings.CutPrefix(name, prefix); found {
+						newRR[k] = trimmed
+						continue
+					}
+				}
+			}
+			newRR[k] = v
+		}
+		newRelatedResources[key] = newRR
+	}
+	newStatus["relatedResources"] = newRelatedResources
+
+	return newStatus
 }
 
 func (t *objectReconcileTask) getProviderStatus(ctx context.Context) (brokerv1alpha1.Status, bool, error) {
@@ -894,8 +952,8 @@ func (t *objectReconcileTask) syncRelatedResource(ctx context.Context, providerC
 	}
 	consumerRRName := relatedResource.Name
 	prefix := SanitizeClusterName(t.consumerName) + "-"
-	if strings.HasPrefix(relatedResource.Name, prefix) {
-		consumerRRName = strings.TrimPrefix(relatedResource.Name, prefix)
+	if trimmed, found := strings.CutPrefix(relatedResource.Name, prefix); found {
+		consumerRRName = trimmed
 	}
 	consumerRRNN := types.NamespacedName{
 		Namespace: t.consumerNamespacedName().Namespace,

@@ -217,6 +217,7 @@ export class GenericResourceService {
             message
             lastTransitionTime
           }
+          relatedResources
         }
       `;
     } else if (resource.kind === 'Certificate') {
@@ -234,6 +235,7 @@ export class GenericResourceService {
             message
             lastTransitionTime
           }
+          relatedResources
         }
       `;
     }
@@ -317,6 +319,57 @@ export class GenericResourceService {
           ${resource.version} {
             create${resource.kind}(
               namespace: $namespace
+              object: {
+                metadata: { name: $name }
+              }
+            ) {
+              metadata {
+                name
+                namespace
+              }
+            }
+          }
+        }
+      }
+    `;
+  }
+
+  /**
+   * Build an update mutation for a resource type.
+   */
+  private buildUpdateMutation(resource: DiscoveredResource): string {
+    if (resource.kind === 'Certificate') {
+      return `
+        mutation UpdateCertificate($namespace: String!, $name: String!, $fqdn: String!) {
+          ${resource.graphqlGroup} {
+            ${resource.version} {
+              updateCertificate(
+                namespace: $namespace
+                name: $name
+                object: {
+                  metadata: { name: $name }
+                  spec: { fqdn: $fqdn }
+                }
+              ) {
+                metadata {
+                  name
+                  namespace
+                }
+              }
+            }
+          }
+        }
+      `;
+    }
+
+    // Fallback for other resource types
+    return `
+      mutation Update${resource.kind}($namespace: String!, $name: String!) {
+        ${resource.graphqlGroup} {
+          ${resource.version} {
+            update${resource.kind}(
+              namespace: $namespace
+              name: $name
               object: {
                 metadata: { name: $name }
               }
@@ -440,6 +493,58 @@ export class GenericResourceService {
       }),
       catchError((error) => {
         console.error(`Error creating ${resource.kind}:`, error);
+        return of(false);
+      })
+    );
+  }
+
+  /**
+   * Update an existing resource.
+   */
+  updateResource(
+    resource: DiscoveredResource,
+    name: string,
+    namespace: string,
+    spec: Record<string, any>
+  ): Observable<boolean> {
+    const mutation = this.buildUpdateMutation(resource);
+
+    // Build variables based on resource type
+    let variables: Record<string, any> = { namespace, name };
+
+    if (resource.kind === 'Certificate') {
+      variables = {
+        namespace,
+        name,
+        fqdn: spec['fqdn'],
+      };
+    }
+
+    return this.getGraphQLConfig().pipe(
+      take(1),
+      switchMap(({ endpoint, token }) =>
+        from(
+          fetch(endpoint, {
+            method: 'POST',
+            headers: this.buildHeaders(token),
+            body: JSON.stringify({
+              query: mutation,
+              variables,
+            }),
+          }).then((res) => res.json())
+        )
+      ),
+      map((response: any) => {
+        if (response.errors) {
+          console.error('GraphQL errors:', response.errors);
+          return false;
+        }
+        const groupData = response.data?.[resource.graphqlGroup];
+        const versionData = groupData?.[resource.version];
+        return !!versionData?.[`update${resource.kind}`];
+      }),
+      catchError((error) => {
+        console.error(`Error updating ${resource.kind}:`, error);
         return of(false);
       })
     );
