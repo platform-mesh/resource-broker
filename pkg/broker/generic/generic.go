@@ -77,7 +77,7 @@ func SetupController(mgr mctrl.Manager, gvk schema.GroupVersionKind, opts Option
 	// consumer resource that owns them. This enables status updates on the
 	// provider side to trigger reconciliation and sync status back to consumer.
 	providerEventHandler := mchandler.TypedEnqueueRequestsFromMapFunc[client.Object, mctrl.Request](
-		func(ctx context.Context, obj client.Object) []mctrl.Request {
+		func(_ context.Context, obj client.Object) []mctrl.Request {
 			annotations := obj.GetAnnotations()
 			if annotations == nil {
 				return nil
@@ -755,7 +755,7 @@ func (t *objectReconcileTask) decorateInProvider(ctx context.Context, providerNa
 			return fmt.Errorf("failed to get resource from provider cluster %q: %w", providerName, err)
 		}
 
-		needsUpdate := false
+		var needsUpdate bool
 		if controllerutil.AddFinalizer(obj, genericFinalizer) {
 			needsUpdate = true
 		}
