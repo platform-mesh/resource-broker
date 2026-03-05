@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # cd into repo root
-example_dir="$(dirname "$0")"
+example_dir="$(cd "$(dirname "$0")" && pwd)"
 cd "$(dirname "$0")/../.."
 source "./hack/lib.bash"
 
@@ -66,7 +66,9 @@ _setup() {
 
     log "Setting up Certificate APIExport for consumers"
     kcp::apiexport "$ws_platform" ./config/example/crd/example.platform-mesh.io_certificates.yaml \
-        secrets '*'
+        secrets '*' \
+        events '*' \
+        namespaces '*'
 
     log "Setting up internalca kcp workspace"
     kcp::create_workspace "$kubeconfigs/kcp-admin.kubeconfig" "$ws_internalca" "internalca"
