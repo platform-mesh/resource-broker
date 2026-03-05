@@ -236,13 +236,13 @@ _ci() {
     kubectl --kubeconfig "$kind_platform" logs -n resource-broker-system deployment/resource-broker > resource-broker.log
     kubectl --kubeconfig "$ws_consumer" get certificates.example.platform-mesh.io cert-from-consumer -o yaml > consumer-certificate.yaml
 
-    kubectl --kubeconfig "$kind_internalca" logs deployment/api-syncagent > internalca-api-syncagent.log
-    kubectl --kubeconfig "$kind_internalca" logs deployment/cert-manager > internalca-cert-manager.log
+    kubectl --kubeconfig "$kind_internalca" logs deployment/api-syncagent-internalca > internalca-api-syncagent.log
+    kubectl --kubeconfig "$kind_internalca" logs -n cert-manager deployment/cert-manager > internalca-cert-manager.log
     kubectl --kubeconfig "$kind_internalca" get certificates.example.platform-mesh.io -A -o yaml > internalca-certificates.yaml
     kubectl --kubeconfig "$kubeconfigs/workspaces/internalca.vw.kubeconfig" get certificates.example.platform-mesh.io -A -o yaml > internalca-vw-certificates.yaml
 
-    kubectl --kubeconfig "$kind_externalca" logs deployment/api-syncagent > externalca-api-syncagent.log
-    kubectl --kubeconfig "$kind_externalca" logs deployment/cert-manager > externalca-cert-manager.log
+    kubectl --kubeconfig "$kind_externalca" logs deployment/api-syncagent-externalca > externalca-api-syncagent.log
+    kubectl --kubeconfig "$kind_externalca" logs -n cert-manager deployment/cert-manager > externalca-cert-manager.log
     kubectl --kubeconfig "$kind_externalca" get certificates.example.platform-mesh.io -A -o yaml > externalca-certificates.yaml
     kubectl --kubeconfig "$kubeconfigs/workspaces/externalca.vw.kubeconfig" get certificates.example.platform-mesh.io -A -o yaml > externalca-vw-certificates.yaml
 }
