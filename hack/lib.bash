@@ -102,23 +102,23 @@ kubectl::wait::_list() {
 }
 
 kubectl::wait::list() {
-    local kubeconfig="$1"
-    local resource="$2"
+    local _kubeconfig="$1"
+    local _resource="$2"
     local retry_count=0
     local max_retries=360
     while [[ "$(kubectl::wait::_list "$@")" -eq 0 ]] ; do
         retry_count=$((retry_count + 1))
         if [[ $retry_count -ge $max_retries ]]; then
-            die "Timed out waiting for any resources '$resource': $kubeconfig"
+            die "Timed out waiting for any resources '$_resource': $_kubeconfig"
         fi
         if [[ $((retry_count % 30)) -eq 0 ]]; then
-            log "Still waiting for '$resource' ($retry_count/$max_retries)... kubeconfig=$kubeconfig"
+            log "Still waiting for '$_resource' ($retry_count/$max_retries)... kubeconfig=$_kubeconfig"
             # Print additional debug info every 30 seconds
-            kubectl --kubeconfig "$kubeconfig" get "$resource" --all-namespaces 2>&1 || true
+            kubectl --kubeconfig "$_kubeconfig" get "$_resource" --all-namespaces 2>&1 || true
         fi
         sleep 1
     done
-    log "Found '$resource' after $retry_count retries"
+    log "Found '$_resource' after $retry_count retries"
 }
 
 kubectl::wait::suffix() {

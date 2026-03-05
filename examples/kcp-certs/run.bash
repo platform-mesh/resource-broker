@@ -127,7 +127,7 @@ _provider_setup_new() {
 
     helm::install::api_syncagent "$kind_kubeconfig" "certificates" "$name" "kubeconfig-$name" \
         --set replicas=1
-    apisyncagent::publish "$kind_kubeconfig" \
+    AGENT_NAME="$name" apisyncagent::publish "$kind_kubeconfig" \
         "certificates" "Certificate" "example.platform-mesh.io" "v1alpha1" \
         "certificate" "service" "Secret" "status.relatedResources.secret.name"
 
@@ -232,19 +232,20 @@ _cleanup() {
 }
 
 _ci() {
-    kubectl --kubeconfig "$kind_platform" logs -n resource-broker-system deployment/resource-broker-operator > resource-broker-operator.log
-    kubectl --kubeconfig "$kind_platform" logs -n resource-broker-system deployment/resource-broker > resource-broker.log
-    kubectl --kubeconfig "$ws_consumer" get certificates.example.platform-mesh.io cert-from-consumer -o yaml > consumer-certificate.yaml
+    # Collect logs for debugging - ignore errors since resources may not exist if test failed early
+    kubectl --kubeconfig "$kind_platform" logs -n resource-broker-system deployment/resource-broker-operator > resource-broker-operator.log 2>&1 || true
+    kubectl --kubeconfig "$kind_platform" logs -n resource-broker-system deployment/resource-broker > resource-broker.log 2>&1 || true
+    kubectl --kubeconfig "$ws_consumer" get certificates.example.platform-mesh.io cert-from-consumer -o yaml > consumer-certificate.yaml 2>&1 || true
 
-    kubectl --kubeconfig "$kind_internalca" logs deployment/api-syncagent-internalca > internalca-api-syncagent.log
-    kubectl --kubeconfig "$kind_internalca" logs -n cert-manager deployment/cert-manager > internalca-cert-manager.log
-    kubectl --kubeconfig "$kind_internalca" get certificates.example.platform-mesh.io -A -o yaml > internalca-certificates.yaml
-    kubectl --kubeconfig "$kubeconfigs/workspaces/internalca.vw.kubeconfig" get certificates.example.platform-mesh.io -A -o yaml > internalca-vw-certificates.yaml
+    kubectl --kubeconfig "$kind_internalca" logs deployment/api-syncagent-internalca > internalca-api-syncagent.log 2>&1 || true
+    kubectl --kubeconfig "$kind_internalca" logs -n cert-manager deployment/cert-manager > internalca-cert-manager.log 2>&1 || true
+    kubectl --kubeconfig "$kind_internalca" get certificates.example.platform-mesh.io -A -o yaml > internalca-certificates.yaml 2>&1 || true
+    kubectl --kubeconfig "$kubeconfigs/workspaces/internalca.vw.kubeconfig" get certificates.example.platform-mesh.io -A -o yaml > internalca-vw-certificates.yaml 2>&1 || true
 
-    kubectl --kubeconfig "$kind_externalca" logs deployment/api-syncagent-externalca > externalca-api-syncagent.log
-    kubectl --kubeconfig "$kind_externalca" logs -n cert-manager deployment/cert-manager > externalca-cert-manager.log
-    kubectl --kubeconfig "$kind_externalca" get certificates.example.platform-mesh.io -A -o yaml > externalca-certificates.yaml
-    kubectl --kubeconfig "$kubeconfigs/workspaces/externalca.vw.kubeconfig" get certificates.example.platform-mesh.io -A -o yaml > externalca-vw-certificates.yaml
+    kubectl --kubeconfig "$kind_externalca" logs deployment/api-syncagent-externalca > externalca-api-syncagent.log 2>&1 || true
+    kubectl --kubeconfig "$kind_externalca" logs -n cert-manager deployment/cert-manager > externalca-cert-manager.log 2>&1 || true
+    kubectl --kubeconfig "$kind_externalca" get certificates.example.platform-mesh.io -A -o yaml > externalca-certificates.yaml 2>&1 || true
+    kubectl --kubeconfig "$kubeconfigs/workspaces/externalca.vw.kubeconfig" get certificates.example.platform-mesh.io -A -o yaml > externalca-vw-certificates.yaml 2>&1 || true
 }
 
 case "$1" in
