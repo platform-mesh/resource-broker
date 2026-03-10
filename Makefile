@@ -231,6 +231,7 @@ deploy-pm-portal: kustomize ## Deploy platform-mesh portal.
 	cd examples/platform-mesh/portal/deploy && $(KUSTOMIZE) edit set image resource-broker-portal=${IMG_PORTAL}
 	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
 	$(KUSTOMIZE) build examples/platform-mesh/portal/deploy | $(KUBECTL) apply -f -
+	$(KUBECTL) apply -f examples/platform-mesh/portal/deploy/httproute.yaml
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy broker.
@@ -247,6 +248,7 @@ undeploy-operator: kustomize ## Undeploy operator.
 .PHONY: undeploy-pm-portal
 undeploy-pm-portal: kustomize ## Undeploy platform-mesh portal.
 	$(KUSTOMIZE) build examples/platform-mesh/portal/deploy | $(KUBECTL) delete --ignore-not-found=true -f -
+	$(KUBECTL) delete --ignore-not-found=true -f examples/platform-mesh/portal/deploy/httproute.yaml
 
 ##@ Dependencies
 

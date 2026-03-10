@@ -17,6 +17,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "baseHref": "/resource-broker/",
             "browser": "src/main.ts",
             "polyfills": [
               "zone.js"

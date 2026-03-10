@@ -6,6 +6,7 @@ namespace: resource-broker-system
 resources:
 - deployment.yaml
 - service.yaml
+- referencegrant.yaml
 
 images:
 - name: resource-broker-portal
