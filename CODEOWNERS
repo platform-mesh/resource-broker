@@ -1,0 +1,5 @@
+* @platform-mesh/kube
+go.mod
+go.sum
+contrib/kcp/go.mod
+contrib/kcp/go.sum
