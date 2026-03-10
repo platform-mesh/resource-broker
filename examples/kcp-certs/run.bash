@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # cd into repo root
-example_dir="$(cd "$(dirname "$0")" && pwd)"
-cd "$(dirname "$0")/../.."
+example_dir="$(realpath "$(dirname "$0")")"
+cd "$example_dir/../.."
 source "./hack/lib.bash"
 
 if [[ -n "$CI" ]]; then
