@@ -17,6 +17,7 @@ import {
 import '@ui5/webcomponents-icons/dist/it-host.js';
 import '@ui5/webcomponents-icons/dist/locked.js';
 import '@ui5/webcomponents-icons/dist/connected.js';
+import '@ui5/webcomponents-icons/dist/cloud.js';
 import '@ui5/webcomponents-icons/dist/database.js';
 import '@ui5/webcomponents-icons/dist/discussion.js';
 import '@ui5/webcomponents-icons/dist/grid.js';

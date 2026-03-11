@@ -77,16 +77,21 @@ const CATEGORY_CONFIG: Record<string, { icon: string; order: number }> = {
   compute: { icon: 'it-host', order: 1 },
   identity: { icon: 'locked', order: 2 },
   networking: { icon: 'connected', order: 3 },
-  storage: { icon: 'database', order: 4 },
+  storage: { icon: 'cloud', order: 4 },
   databases: { icon: 'database', order: 5 },
   messaging: { icon: 'discussion', order: 6 },
   applications: { icon: 'grid', order: 7 },
   ai: { icon: 'lightbulb', order: 8 },
 };
 
+// Display name overrides for categories that need special casing
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  ai: 'AI',
+};
+
 export const CATEGORY_ICONS: Record<string, string> = Object.fromEntries(
   Object.entries(CATEGORY_CONFIG).map(([k, v]) => [
-    k.charAt(0).toUpperCase() + k.slice(1),
+    CATEGORY_DISPLAY_NAMES[k] || k.charAt(0).toUpperCase() + k.slice(1),
     v.icon,
   ])
 );
@@ -150,7 +155,7 @@ function resolveGraphQLVarType(type: any): { graphqlType: string; required: bool
 function deriveCategoryFromGroup(graphqlGroup: string): string {
   // e.g., "compute_generic_platform_mesh_io" → "Compute"
   const prefix = graphqlGroup.split('_generic_platform_mesh_io')[0];
-  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  return CATEGORY_DISPLAY_NAMES[prefix] || prefix.charAt(0).toUpperCase() + prefix.slice(1);
 }
 
 function deriveGroupFromGraphQL(graphqlGroup: string): string {
