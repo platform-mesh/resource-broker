@@ -18,7 +18,7 @@ spec:
                           "label": "Generic APIs Broker",
                           "hideFromNav": false,
                           "icon": "database",
-                          "url": "https://{context.organization}.portal.localhost:8443/resource-broker/",
+                          "url": "http://localhost:4301/resource-broker/",
                           "entityType": "main.core_platform-mesh_io_account",
                           "order": 900,
                           "loadingIndicator": {

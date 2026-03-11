@@ -5,7 +5,7 @@ metadata:
 spec:
   displayName: Generic APIs Broker
   description: |
-    This provider offers generic APIs for resources such as certificates and virtual machines.
+    This provider offers generic APIs for resources such as managed certificates and virtual machines.
     It serves as a bridge to integrate various resource types into the Platform Mesh ecosystem, 
     enabling users to manage and interact with these resources through a unified interface.
   contacts:

@@ -1,4 +1,4 @@
-apiVersion: pki.generic.platform-mesh.io/v1alpha1
+apiVersion: identity.generic.platform-mesh.io/v1alpha1
 kind: Certificate
 metadata:
   name: cert-from-consumer

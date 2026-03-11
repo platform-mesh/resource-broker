@@ -80,7 +80,7 @@ __setup_provider() {
         --set "hostAliases.values[0].hostnames[0]=localhost" \
         --set "publishedResourceSelector=ca in ($name)"
 
-    PROJECTION_GROUP="pki.generic.platform-mesh.io" LABEL_KEY=ca LABEL_VALUE="$name" NAMESPACE="$name" \
+    PROJECTION_GROUP="identity.generic.platform-mesh.io" LABEL_KEY=ca LABEL_VALUE="$name" NAMESPACE="$name" \
         AGENT_NAME="$name" \
         apisyncagent::publish "$kind_kubeconfig" \
         "certificates" "Certificate" "$name.ca" "v1alpha1" \

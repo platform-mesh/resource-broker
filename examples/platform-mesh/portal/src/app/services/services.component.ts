@@ -1,7 +1,7 @@
 /**
  * Services Component
  *
- * Main layout with side navigation for service categories (Compute, PKI).
+ * Main layout with side navigation for dynamically discovered service categories.
  * Shows available resource types organized by category in a side menu.
  */
 import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal, OnInit } from '@angular/core';
@@ -16,10 +16,15 @@ import {
 
 import '@ui5/webcomponents-icons/dist/it-host.js';
 import '@ui5/webcomponents-icons/dist/locked.js';
+import '@ui5/webcomponents-icons/dist/connected.js';
+import '@ui5/webcomponents-icons/dist/database.js';
+import '@ui5/webcomponents-icons/dist/discussion.js';
+import '@ui5/webcomponents-icons/dist/grid.js';
+import '@ui5/webcomponents-icons/dist/lightbulb.js';
+import '@ui5/webcomponents-icons/dist/hint.js';
 import '@ui5/webcomponents-icons/dist/navigation-right-arrow.js';
 import '@ui5/webcomponents-icons/dist/navigation-down-arrow.js';
 import '@ui5/webcomponents-icons/dist/customer.js';
-import '@ui5/webcomponents-icons/dist/home.js';
 
 import { GenericResourceService, ServiceCategory, DiscoveredResource } from './generic-resource.service';
 
@@ -45,26 +50,33 @@ export class ServicesComponent implements OnInit {
   public categories = signal<ServiceCategory[]>([]);
   public loading = signal<boolean>(true);
   public selectedResource = signal<DiscoveredResource | null>(null);
-  public expandedCategories = signal<Set<string>>(new Set(['Compute', 'PKI']));
+  public expandedCategories = signal<Set<string>>(new Set());
 
   ngOnInit(): void {
     LuigiClient.addInitListener(() => {
       LuigiClient.uxManager().showLoadingIndicator();
       this.loadCategories();
-      LuigiClient.uxManager().hideLoadingIndicator();
     });
   }
 
   private loadCategories(): void {
-    const categories = this.genericResourceService.getServiceCategories();
-    this.categories.set(categories);
-    this.loading.set(false);
-
-    // Auto-select first resource if none selected
-    if (categories.length > 0 && categories[0].resources.length > 0) {
-      const firstResource = categories[0].resources[0];
-      this.selectResource(firstResource);
-    }
+    this.genericResourceService.getServiceCategories().subscribe({
+      next: (categories) => {
+        this.categories.set(categories);
+        this.loading.set(false);
+        // Keep all categories collapsed by default
+        // Auto-select first resource if none selected
+        if (categories.length > 0 && categories[0].resources.length > 0) {
+          this.selectResource(categories[0].resources[0]);
+        }
+        LuigiClient.uxManager().hideLoadingIndicator();
+      },
+      error: (err) => {
+        console.error('Failed to load categories:', err);
+        this.loading.set(false);
+        LuigiClient.uxManager().hideLoadingIndicator();
+      },
+    });
   }
 
   public selectResource(resource: DiscoveredResource): void {

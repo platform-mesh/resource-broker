@@ -2,14 +2,14 @@
   <ui5-dynamic-page-title slot="titleArea">
     <ui5-title slot="heading" level="H3">
       @if (resource()) {
-        {{ resource()!.kind }}s
+        {{ resource()!.plural }}
       }
     </ui5-title>
 
     <div slot="snappedHeading" class="snapped-heading">
       <ui5-avatar size="S" shape="Square" [icon]="getIcon()" colorScheme="Accent5"></ui5-avatar>
       <div class="snapped-heading-text">
-        <ui5-title level="H5">{{ resource()?.kind }}s</ui5-title>
+        <ui5-title level="H5">{{ resource()?.plural }}</ui5-title>
         <ui5-label>{{ resource()?.group }}</ui5-label>
       </div>
     </div>
@@ -27,7 +27,7 @@
       <ui5-icon [name]="getIcon()" class="header-icon"></ui5-icon>
 
       <div class="header-status-block">
-        <div class="status-title">Total {{ resource()?.kind }}s</div>
+        <div class="status-title">Total {{ resource()?.plural }}</div>
         <div class="object-number">
           <span class="number">{{ resources().length }}</span>
         </div>
@@ -43,7 +43,7 @@
     } @else if (resources().length === 0) {
       <div class="empty-state">
         <ui5-icon [name]="getIcon()" class="empty-icon"></ui5-icon>
-        <ui5-title level="H5">No {{ resource()?.kind }}s</ui5-title>
+        <ui5-title level="H5">No {{ resource()?.plural }}</ui5-title>
         <ui5-text>Click "Add" to create a new {{ resource()?.kind }}.</ui5-text>
       </div>
     } @else {
@@ -63,20 +63,11 @@
             </div>
 
             <div class="tile-content">
-              @if (isVirtualMachine()) {
+              <!-- Dynamic spec fields -->
+              @for (field of resource()?.specFields || []; track field.name) {
                 <div class="tile-field">
-                  <ui5-label>Architecture</ui5-label>
-                  <ui5-text>{{ getSpecValue(item, 'arch') }}</ui5-text>
-                </div>
-                <div class="tile-field">
-                  <ui5-label>Memory</ui5-label>
-                  <ui5-text>{{ getSpecValue(item, 'memory') }} MiB</ui5-text>
-                </div>
-              }
-              @if (isCertificate()) {
-                <div class="tile-field">
-                  <ui5-label>FQDN</ui5-label>
-                  <ui5-text>{{ getSpecValue(item, 'fqdn') }}</ui5-text>
+                  <ui5-label>{{ formatFieldName(field.name) }}</ui5-label>
+                  <ui5-text>{{ getSpecValue(item, field.name) }}</ui5-text>
                 </div>
               }
 
@@ -115,10 +106,7 @@
     <div class="form-field">
       <ui5-label for="resource-namespace" required>Namespace</ui5-label>
       @if (namespaces().length > 0) {
-        <ui5-select
-          id="resource-namespace"
-          (change)="onNamespaceChange($event)"
-        >
+        <ui5-select id="resource-namespace" (change)="onNamespaceChange($event)">
           @for (ns of namespaces(); track ns.metadata.name) {
             <ui5-option [value]="ns.metadata.name" [selected]="ns.metadata.name === newResourceNamespace()">
               {{ ns.metadata.name }}
@@ -140,42 +128,28 @@
       ></ui5-input>
     </div>
 
-    <!-- VirtualMachine-specific fields -->
-    @if (isVirtualMachine()) {
+    <!-- Dynamic spec fields -->
+    @for (field of resource()?.specFields || []; track field.name) {
       <div class="form-field">
-        <ui5-label for="vm-arch">Architecture</ui5-label>
-        <ui5-select
-          id="vm-arch"
-          (change)="onArchChange($event)"
-        >
-          <ui5-option value="x86_64" [selected]="newVmArch() === 'x86_64'">x86_64</ui5-option>
-          <ui5-option value="arm64" [selected]="newVmArch() === 'arm64'">arm64</ui5-option>
-        </ui5-select>
-      </div>
-
-      <div class="form-field">
-        <ui5-label for="vm-memory">Memory (MiB)</ui5-label>
-        <ui5-input
-          id="vm-memory"
-          type="Number"
-          placeholder="512"
-          [value]="newVmMemory().toString()"
-          (input)="onMemoryInput($event)"
-        ></ui5-input>
-      </div>
-    }
-
-    <!-- Certificate-specific fields -->
-    @if (isCertificate()) {
-      <div class="form-field">
-        <ui5-label for="cert-fqdn" required>FQDN</ui5-label>
-        <ui5-input
-          id="cert-fqdn"
-          placeholder="example.com"
-          [value]="newCertFqdn()"
-          (input)="onFqdnInput($event)"
-        ></ui5-input>
-        <ui5-label class="field-hint">Fully qualified domain name for the certificate</ui5-label>
+        <ui5-label [for]="'spec-' + field.name" [required]="field.required">
+          {{ formatFieldName(field.name) }}
+        </ui5-label>
+        @if (field.scalarType === 'number') {
+          <ui5-input
+            [id]="'spec-' + field.name"
+            type="Number"
+            [placeholder]="'Enter ' + formatFieldName(field.name).toLowerCase()"
+            [value]="specFormValues()[field.name]?.toString() || ''"
+            (input)="onSpecFieldInput(field.name, $event)"
+          ></ui5-input>
+        } @else {
+          <ui5-input
+            [id]="'spec-' + field.name"
+            [placeholder]="'Enter ' + formatFieldName(field.name).toLowerCase()"
+            [value]="specFormValues()[field.name] || ''"
+            (input)="onSpecFieldInput(field.name, $event)"
+          ></ui5-input>
+        }
       </div>
     }
   </div>
@@ -202,14 +176,12 @@
           <ui5-title level="H5">{{ selectedResource()!.metadata.name }}</ui5-title>
           <ui5-label>{{ selectedResource()!.metadata.namespace || 'default' }}</ui5-label>
         </div>
-        @if (isCertificate()) {
-          <ui5-button
-            [icon]="isEditMode() ? 'decline' : 'edit'"
-            [design]="isEditMode() ? 'Negative' : 'Transparent'"
-            [tooltip]="isEditMode() ? 'Cancel Edit' : 'Edit'"
-            (click)="toggleEditMode()"
-          ></ui5-button>
-        }
+        <ui5-button
+          [icon]="isEditMode() ? 'decline' : 'edit'"
+          [design]="isEditMode() ? 'Negative' : 'Transparent'"
+          [tooltip]="isEditMode() ? 'Cancel Edit' : 'Edit'"
+          (click)="toggleEditMode()"
+        ></ui5-button>
       </div>
 
       @if (getProviderCluster(selectedResource()!)) {
@@ -223,28 +195,27 @@
       <div class="details-section">
         <ui5-title level="H6">Spec</ui5-title>
         <div class="details-grid">
-          @if (isVirtualMachine()) {
+          <!-- Dynamic spec fields -->
+          @for (field of resource()?.specFields || []; track field.name) {
             <div class="detail-item">
-              <ui5-label>Architecture</ui5-label>
-              <ui5-text>{{ getSpecValue(selectedResource()!, 'arch') }}</ui5-text>
-            </div>
-            <div class="detail-item">
-              <ui5-label>Memory</ui5-label>
-              <ui5-text>{{ getSpecValue(selectedResource()!, 'memory') }} MiB</ui5-text>
-            </div>
-          }
-          @if (isCertificate()) {
-            <div class="detail-item full-width">
-              <ui5-label>FQDN</ui5-label>
+              <ui5-label>{{ formatFieldName(field.name) }}</ui5-label>
               @if (isEditMode()) {
-                <ui5-input
-                  [value]="editCertFqdn()"
-                  (input)="onEditFqdnInput($event)"
-                  placeholder="example.com"
-                  class="edit-input"
-                ></ui5-input>
+                @if (field.scalarType === 'number') {
+                  <ui5-input
+                    type="Number"
+                    [value]="editSpecValues()[field.name]?.toString() || ''"
+                    (input)="onEditSpecFieldInput(field.name, $event)"
+                    class="edit-input"
+                  ></ui5-input>
+                } @else {
+                  <ui5-input
+                    [value]="editSpecValues()[field.name] || ''"
+                    (input)="onEditSpecFieldInput(field.name, $event)"
+                    class="edit-input"
+                  ></ui5-input>
+                }
               } @else {
-                <ui5-text>{{ getSpecValue(selectedResource()!, 'fqdn') }}</ui5-text>
+                <ui5-text>{{ getSpecValue(selectedResource()!, field.name) }}</ui5-text>
               }
             </div>
           }

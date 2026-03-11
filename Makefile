@@ -180,6 +180,20 @@ kind-load-operator: ## Load docker image with the operator into kind cluster. Se
 kind-load-portal: ## Load docker image with the portal into kind cluster. Set cluster name with KIND_CLUSTER.
 	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_PORTAL}"
 
+## CRD directories for kcp snapshot
+GENERIC_CRD_DIR ?= config/generic/crd
+BROKER_CRD_DIR ?= config/broker/crd
+GENERIC_CRDS = $(wildcard $(GENERIC_CRD_DIR)/*_*.yaml)
+BROKER_CRDS = $(wildcard $(BROKER_CRD_DIR)/*_*.yaml)
+
+.PHONY: kcp-snapshot-apply
+kcp-snapshot-apply: manifests ## Snapshot all generic and broker CRDs and apply them to kcp.
+	@for crd in $(GENERIC_CRDS) $(BROKER_CRDS); do \
+		echo "Snapshotting and applying $$crd"; \
+		kubectl kcp crd snapshot --prefix current --output yaml -f "$$crd" \
+			| KUBECONFIG="$(PM_KUBECONFIG)" kubectl apply -f - || exit 1; \
+	done
+
 ##@ Deployment
 
 ifndef ignore-not-found

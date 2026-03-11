@@ -4,10 +4,10 @@ namespace: resource-broker-system
 resources:
 - ../crd
 - ../rbac
-- ../../broker/rbac # for the resource-broker sa, cluster role and binding
+- ../../broker/rbac
 - deployment.yaml
 
 images:
 - name: operator
-  newName: ghcr.io/platform-mesh/resource-broker-operator
-  newTag: latest
+  newName: resource-broker-operator
+  newTag: platform-mesh

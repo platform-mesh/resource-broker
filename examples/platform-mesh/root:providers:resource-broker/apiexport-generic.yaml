@@ -6,18 +6,97 @@ metadata:
     ui.platform-mesh.io/content-for: generic.platform-mesh.io
 spec:
   resources:
-    - group: pki.generic.platform-mesh.io
+    # Identity
+    - group: identity.generic.platform-mesh.io
       name: certificates
-      schema: current.certificates.pki.generic.platform-mesh.io
+      schema: current.certificates.identity.generic.platform-mesh.io
       storage:
         crd: {}
+    # Compute
     - group: compute.generic.platform-mesh.io
       name: virtualmachines
       schema: current.virtualmachines.compute.generic.platform-mesh.io
       storage:
         crd: {}
+    - group: compute.generic.platform-mesh.io
+      name: kubernetesclusters
+      schema: current.kubernetesclusters.compute.generic.platform-mesh.io
+      storage:
+        crd: {}
+    # Storage
+    - group: storage.generic.platform-mesh.io
+      name: objects
+      schema: current.objects.storage.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: storage.generic.platform-mesh.io
+      name: blocks
+      schema: current.blocks.storage.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: storage.generic.platform-mesh.io
+      name: files
+      schema: current.files.storage.generic.platform-mesh.io
+      storage:
+        crd: {}
+    # Networking
+    - group: networking.generic.platform-mesh.io
+      name: virtualnetworks
+      schema: current.virtualnetworks.networking.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: networking.generic.platform-mesh.io
+      name: peerings
+      schema: current.peerings.networking.generic.platform-mesh.io
+      storage:
+        crd: {}
+    # Databases
+    - group: databases.generic.platform-mesh.io
+      name: sqls
+      schema: current.sqls.databases.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: databases.generic.platform-mesh.io
+      name: nosqls
+      schema: current.nosqls.databases.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: databases.generic.platform-mesh.io
+      name: keyvalues
+      schema: current.keyvalues.databases.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: databases.generic.platform-mesh.io
+      name: vectors
+      schema: current.vectors.databases.generic.platform-mesh.io
+      storage:
+        crd: {}
+    # Messaging
+    - group: messaging.generic.platform-mesh.io
+      name: pubsubs
+      schema: current.pubsubs.messaging.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: messaging.generic.platform-mesh.io
+      name: eventstreamings
+      schema: current.eventstreamings.messaging.generic.platform-mesh.io
+      storage:
+        crd: {}
+    - group: messaging.generic.platform-mesh.io
+      name: messagebrokers
+      schema: current.messagebrokers.messaging.generic.platform-mesh.io
+      storage:
+        crd: {}
+    # AI
+    - group: ai.generic.platform-mesh.io
+      name: hostedmodels
+      schema: current.hostedmodels.ai.generic.platform-mesh.io
+      storage:
+        crd: {}
   permissionClaims:
     - resource: secrets
+      verbs: ["*"]
+    - resource: configmaps
       verbs: ["*"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

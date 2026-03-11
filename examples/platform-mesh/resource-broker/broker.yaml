@@ -18,7 +18,7 @@ spec:
     - "-brokerapi=generic.platform-mesh.io"
     - "-zap-devel=true"
     - "-zap-log-level=debug"
-    - "-watch-kind=Certificate.v1alpha1.pki.generic.platform-mesh.io"
+    - "-watch-kind=Certificate.v1alpha1.identity.generic.platform-mesh.io"
   volumes:
     - name: kubeconfig-volume
       secret:

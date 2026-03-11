@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: certificates.pki.generic.platform-mesh.io
+  name: sqls.databases.generic.platform-mesh.io
 spec:
-  group: pki.generic.platform-mesh.io
+  group: databases.generic.platform-mesh.io
   names:
-    kind: Certificate
-    listKind: CertificateList
-    plural: certificates
-    singular: certificate
+    kind: SQL
+    listKind: SQLList
+    plural: sqls
+    singular: sql
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Certificate is the Schema for the certificates API.
+        description: SQL is the Schema for the sqls API.
         properties:
           apiVersion:
             description: |-
@@ -37,28 +37,22 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of Certificate
+            description: spec defines the desired state of SQL
             properties:
-              fqdn:
-                description: fqdn is the fully qualified domain name for the certificate.
+              engine:
+                description: engine is the database engine type (e.g., postgres, mysql).
+                type: string
+              version:
+                description: version is the database engine version.
                 type: string
             required:
-            - fqdn
+            - engine
             type: object
           status:
-            description: status defines the observed state of Certificate
+            description: status defines the observed state of SQL
             properties:
               conditions:
-                description: |-
-                  conditions represent the current state of the Certificate resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
+                description: conditions represent the current state of the SQL resource.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -148,7 +142,7 @@ spec:
                   - gvk
                   - name
                   type: object
-                description: RelatedResources lists resources related to this VM.
+                description: RelatedResources lists resources related to this SQL.
                 type: object
             type: object
         required:

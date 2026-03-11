@@ -112,15 +112,7 @@ Setup the APIResourceSchema. For this example we'll be using the `Certificate` e
 Create the APIResourcheSchema for Certificate and AcceptAPI:
 
 ```bash
-kubectl kcp crd snapshot --prefix current --output yaml \
-    -f ./config/generic/crd/compute.generic.platform-mesh.io_virtualmachines.yaml \
-    | KUBECONFIG="$PM_KUBECONFIG" kubectl apply -f -
-kubectl kcp crd snapshot --prefix current --output yaml \
-    -f ./config/generic/crd/pki.generic.platform-mesh.io_certificates.yaml \
-    | KUBECONFIG="$PM_KUBECONFIG" kubectl apply -f -
-kubectl kcp crd snapshot --prefix current --output yaml \
-    -f ./config/broker/crd/broker.platform-mesh.io_acceptapis.yaml \
-    | KUBECONFIG="$PM_KUBECONFIG" kubectl apply -f -
+make kcp-snapshot-apply PM_KUBECONFIG="$PM_KUBECONFIG"
 ```
 
 

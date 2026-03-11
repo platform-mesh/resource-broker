@@ -3,12 +3,12 @@ kind: AcceptAPI
 metadata:
   annotations:
     broker.platform-mesh.io/secret-name: kubeconfig-externalca
-  name: v1alpha1.certificates.pki.generic.platform-mesh.io
+  name: v1alpha1.certificates.identity.generic.platform-mesh.io
 spec:
   filters:
   - key: fqdn
     suffix: corp.com
   gvr:
-    group: pki.generic.platform-mesh.io
+    group: identity.generic.platform-mesh.io
     resource: certificates
     version: v1alpha1

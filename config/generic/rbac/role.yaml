@@ -5,8 +5,35 @@ metadata:
   name: resource-broker
 rules:
 - apiGroups:
+  - ai.generic.platform-mesh.io
+  resources:
+  - hostedmodels
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ai.generic.platform-mesh.io
+  resources:
+  - hostedmodels/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ai.generic.platform-mesh.io
+  resources:
+  - hostedmodels/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - compute.generic.platform-mesh.io
   resources:
+  - kubernetesclusters
   - vms
   verbs:
   - create
@@ -19,19 +46,56 @@ rules:
 - apiGroups:
   - compute.generic.platform-mesh.io
   resources:
+  - kubernetesclusters/finalizers
   - vms/finalizers
   verbs:
   - update
 - apiGroups:
   - compute.generic.platform-mesh.io
   resources:
+  - kubernetesclusters/status
   - vms/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - pki.generic.platform-mesh.io
+  - databases.generic.platform-mesh.io
+  resources:
+  - keyvalues
+  - nosqls
+  - sqls
+  - vectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - databases.generic.platform-mesh.io
+  resources:
+  - keyvalues/finalizers
+  - nosqls/finalizers
+  - sqls/finalizers
+  - vectors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - databases.generic.platform-mesh.io
+  resources:
+  - keyvalues/status
+  - nosqls/status
+  - sqls/status
+  - vectors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - identity.generic.platform-mesh.io
   resources:
   - certificates
   verbs:
@@ -43,15 +107,108 @@ rules:
   - update
   - watch
 - apiGroups:
-  - pki.generic.platform-mesh.io
+  - identity.generic.platform-mesh.io
   resources:
   - certificates/finalizers
   verbs:
   - update
 - apiGroups:
-  - pki.generic.platform-mesh.io
+  - identity.generic.platform-mesh.io
   resources:
   - certificates/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - messaging.generic.platform-mesh.io
+  resources:
+  - eventstreamings
+  - messagebrokers
+  - pubsubs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - messaging.generic.platform-mesh.io
+  resources:
+  - eventstreamings/finalizers
+  - messagebrokers/finalizers
+  - pubsubs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - messaging.generic.platform-mesh.io
+  resources:
+  - eventstreamings/status
+  - messagebrokers/status
+  - pubsubs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.generic.platform-mesh.io
+  resources:
+  - peerings
+  - virtualnetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.generic.platform-mesh.io
+  resources:
+  - peerings/finalizers
+  - virtualnetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - networking.generic.platform-mesh.io
+  resources:
+  - peerings/status
+  - virtualnetworks/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - storage.generic.platform-mesh.io
+  resources:
+  - blocks
+  - files
+  - objects
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - storage.generic.platform-mesh.io
+  resources:
+  - blocks/finalizers
+  - files/finalizers
+  - objects/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - storage.generic.platform-mesh.io
+  resources:
+  - blocks/status
+  - files/status
+  - objects/status
   verbs:
   - get
   - patch
