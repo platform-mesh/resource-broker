@@ -11,6 +11,7 @@ spec:
     - ip: 10.96.188.4 # hardcoded in pm local-setup
       hostnames:
         - localhost
+        - root.kcp.localhost
   extraArgs:
     - "-kubeconfig=/kubeconfig/kubeconfig"
     - "-kcp-kubeconfig=/kubeconfig/kubeconfig"

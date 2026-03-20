@@ -290,6 +290,9 @@ helm::install::api_syncagent() {
         --set apiExportName="$apiExportName" \
         --set agentName="$agentName" \
         --set kcpKubeconfig="$kcpKubeconfig" \
+        --set "hostAliases.values[0].ip=10.96.188.4" \
+        --set "hostAliases.values[0].hostnames[0]=localhost" \
+        --set "hostAliases.values[0].hostnames[1]=root.kcp.localhost" \
         "$@"
 }
 

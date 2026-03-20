@@ -78,6 +78,7 @@ __setup_provider() {
         --set "hostAliases.enabled=true" \
         --set "hostAliases.values[0].ip=10.96.188.4" \
         --set "hostAliases.values[0].hostnames[0]=localhost" \
+        --set "hostAliases.values[0].hostnames[1]=root.kcp.localhost" \
         --set "publishedResourceSelector=ca in ($name)"
 
     PROJECTION_GROUP="identity.generic.platform-mesh.io" LABEL_KEY=ca LABEL_VALUE="$name" NAMESPACE="$name" \
