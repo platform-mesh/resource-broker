@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   lint:
@@ -179,8 +183,31 @@ jobs:
             *.yaml
 
   quality-gate:
+    if: always()
     permissions: {}
+    needs: [lint, test, test-e2e, docker, examples]
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - run: echo "OK"
+      - name: Check results
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "lint failed"
+            exit 1
+          fi
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "test failed"
+            exit 1
+          fi
+          if [[ "${{ needs.test-e2e.result }}" != "success" ]]; then
+            echo "test-e2e failed"
+            exit 1
+          fi
+          if [[ "${{ needs.docker.result }}" != "success" ]]; then
+            echo "docker failed"
+            exit 1
+          fi
+          if [[ "${{ needs.examples.result }}" != "success" ]]; then
+            echo "examples failed"
+            exit 1
+          fi
