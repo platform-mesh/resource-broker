@@ -6,7 +6,7 @@ replace github.com/platform-mesh/resource-broker => ../..
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/kcp-dev/multicluster-provider v0.5.1
+	github.com/kcp-dev/multicluster-provider v0.5.2-0.20260412105142-7979b3b2700b
 	github.com/kcp-dev/sdk v0.30.1
 	github.com/platform-mesh/resource-broker v0.0.0-00010101000000-000000000000
 	golang.org/x/sync v0.20.0
@@ -15,7 +15,7 @@ require (
 	k8s.io/client-go v0.35.3
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	sigs.k8s.io/controller-runtime v0.23.3
-	sigs.k8s.io/multicluster-runtime v0.23.1
+	sigs.k8s.io/multicluster-runtime v0.23.3
 )
 
 require (
