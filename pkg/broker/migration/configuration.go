@@ -28,6 +28,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
@@ -38,7 +39,7 @@ const migrationConfigurationFinalizer = "broker.platform-mesh.io/migrationconfig
 // MigrationConfiguration reconciler.
 type ConfigurationOptions struct {
 	ControllerNamePrefix         string
-	GetCluster                   func(context.Context, string) (cluster.Cluster, error)
+	GetCluster                   func(context.Context, multicluster.ClusterName) (cluster.Cluster, error)
 	SetMigrationConfiguration    func(from metav1.GroupVersionKind, to metav1.GroupVersionKind, config brokerv1alpha1.MigrationConfiguration)
 	DeleteMigrationConfiguration func(from metav1.GroupVersionKind, to metav1.GroupVersionKind)
 }

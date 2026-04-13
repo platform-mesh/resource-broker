@@ -93,25 +93,27 @@ func NewBroker(
 	acceptAPIOpts := acceptapireconciler.Options{
 		GetCluster:           mgr.GetCluster,
 		ControllerNamePrefix: name,
-		SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPI brokerv1alpha1.AcceptAPI) {
+		SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName multicluster.ClusterName, acceptAPI brokerv1alpha1.AcceptAPI) {
 			b.lock.Lock()
 			defer b.lock.Unlock()
+			cn := string(clusterName)
 			if _, ok := b.apiAccepters[gvr]; !ok {
 				b.apiAccepters[gvr] = make(map[string]map[string]brokerv1alpha1.AcceptAPI)
 			}
-			if _, ok := b.apiAccepters[gvr][clusterName]; !ok {
-				b.apiAccepters[gvr][clusterName] = make(map[string]brokerv1alpha1.AcceptAPI)
+			if _, ok := b.apiAccepters[gvr][cn]; !ok {
+				b.apiAccepters[gvr][cn] = make(map[string]brokerv1alpha1.AcceptAPI)
 			}
-			b.apiAccepters[gvr][clusterName][acceptAPI.Name] = acceptAPI
+			b.apiAccepters[gvr][cn][acceptAPI.Name] = acceptAPI
 		},
-		DeleteAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPIName string) {
+		DeleteAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName multicluster.ClusterName, acceptAPIName string) {
 			b.lock.Lock()
 			defer b.lock.Unlock()
-			clusterAcceptedAPIs, ok := b.apiAccepters[gvr][clusterName]
+			cn := string(clusterName)
+			clusterAcceptedAPIs, ok := b.apiAccepters[gvr][cn]
 			if ok {
 				delete(clusterAcceptedAPIs, acceptAPIName)
 				if len(clusterAcceptedAPIs) == 0 {
-					delete(b.apiAccepters[gvr], clusterName)
+					delete(b.apiAccepters[gvr], cn)
 				}
 			}
 		},
@@ -179,14 +181,14 @@ func NewBroker(
 	genericOpts := genericreconciler.Options{
 		CoordinationClient:   b.coordination,
 		ControllerNamePrefix: name,
-		GetProviderCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-			if !strings.HasPrefix(clusterName, ProviderPrefix) {
+		GetProviderCluster: func(ctx context.Context, clusterName multicluster.ClusterName) (cluster.Cluster, error) {
+			if !strings.HasPrefix(string(clusterName), ProviderPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a provider cluster: %w", clusterName, multicluster.ErrClusterNotFound)
 			}
 			return mgr.GetCluster(ctx, clusterName)
 		},
-		GetConsumerCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-			if !strings.HasPrefix(clusterName, ConsumerPrefix) {
+		GetConsumerCluster: func(ctx context.Context, clusterName multicluster.ClusterName) (cluster.Cluster, error) {
+			if !strings.HasPrefix(string(clusterName), ConsumerPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a consumer cluster: %w", clusterName, multicluster.ErrClusterNotFound)
 			}
 			return mgr.GetCluster(ctx, clusterName)

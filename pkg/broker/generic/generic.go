@@ -42,6 +42,7 @@ import (
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
 	mchandler "sigs.k8s.io/multicluster-runtime/pkg/handler"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
@@ -61,8 +62,8 @@ const (
 type Options struct {
 	ControllerNamePrefix      string
 	CoordinationClient        client.Client
-	GetProviderCluster        func(context.Context, string) (cluster.Cluster, error)
-	GetConsumerCluster        func(context.Context, string) (cluster.Cluster, error)
+	GetProviderCluster        func(context.Context, multicluster.ClusterName) (cluster.Cluster, error)
+	GetConsumerCluster        func(context.Context, multicluster.ClusterName) (cluster.Cluster, error)
 	GetProviders              func(metav1.GroupVersionResource) map[string]map[string]brokerv1alpha1.AcceptAPI
 	GetProviderAcceptedAPIs   func(string, metav1.GroupVersionResource) ([]brokerv1alpha1.AcceptAPI, error)
 	GetMigrationConfiguration func(metav1.GroupVersionKind, metav1.GroupVersionKind) (brokerv1alpha1.MigrationConfiguration, bool)
@@ -91,7 +92,7 @@ func SetupController(mgr mctrl.Manager, gvk schema.GroupVersionKind, opts Option
 				return nil
 			}
 			return []mctrl.Request{{
-				ClusterName: consumerCluster,
+				ClusterName: multicluster.ClusterName(consumerCluster),
 				Request: reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Namespace: obj.GetNamespace(),
@@ -338,14 +339,14 @@ func (t *objectReconcileTask) determineClusters(ctx context.Context) (bool, erro
 
 	if _, err := t.opts.GetConsumerCluster(ctx, t.req.ClusterName); err == nil {
 		t.log.Info("Request comes from consumer cluster")
-		if err := t.setConsumerCluster(ctx, t.req.ClusterName); err != nil {
+		if err := t.setConsumerCluster(ctx, string(t.req.ClusterName)); err != nil {
 			return false, fmt.Errorf("failed to set consumer cluster: %w", err)
 		}
 	}
 
 	if _, err := t.opts.GetProviderCluster(ctx, t.req.ClusterName); err == nil {
 		t.log.Info("Request comes from provider cluster")
-		if err := t.setProviderCluster(ctx, t.req.ClusterName); err != nil {
+		if err := t.setProviderCluster(ctx, string(t.req.ClusterName)); err != nil {
 			return false, fmt.Errorf("failed to set provider cluster: %w", err)
 		}
 	}
@@ -402,7 +403,7 @@ func (t *objectReconcileTask) determineClusters(ctx context.Context) (bool, erro
 	}
 	t.log.Info("Found new provider annotation", "newProvider", t.newProviderName)
 
-	if t.req.ClusterName == t.newProviderName {
+	if string(t.req.ClusterName) == t.newProviderName {
 		t.log.Info("Event comes from new provider cluster")
 		t.newProviderCluster = t.providerCluster
 		if err := t.setProviderCluster(ctx, consumerObj.GetAnnotations()[providerClusterAnn]); err != nil {
@@ -411,7 +412,7 @@ func (t *objectReconcileTask) determineClusters(ctx context.Context) (bool, erro
 		return true, nil
 	}
 
-	t.newProviderCluster, err = t.opts.GetProviderCluster(ctx, t.newProviderName)
+	t.newProviderCluster, err = t.opts.GetProviderCluster(ctx, multicluster.ClusterName(t.newProviderName))
 	if err != nil {
 		return false, fmt.Errorf("failed to get new provider cluster %q: %w", t.newProviderName, err)
 	}
@@ -421,7 +422,7 @@ func (t *objectReconcileTask) determineClusters(ctx context.Context) (bool, erro
 
 func (t *objectReconcileTask) setConsumerCluster(ctx context.Context, name string) error {
 	t.log.Info("Setting consumer cluster", "consumer", name)
-	cl, err := t.opts.GetConsumerCluster(ctx, name)
+	cl, err := t.opts.GetConsumerCluster(ctx, multicluster.ClusterName(name))
 	if err != nil {
 		return fmt.Errorf("failed to get consumer cluster %q: %w", name, err)
 	}
@@ -470,7 +471,7 @@ func (t *objectReconcileTask) setConsumerClusterFromProvider(ctx context.Context
 
 func (t *objectReconcileTask) setProviderCluster(ctx context.Context, name string) error {
 	t.log.Info("Setting provider cluster", "provider", name)
-	cl, err := t.opts.GetProviderCluster(ctx, name)
+	cl, err := t.opts.GetProviderCluster(ctx, multicluster.ClusterName(name))
 	if err != nil {
 		return fmt.Errorf("failed to get provider cluster %q: %w", name, err)
 	}
@@ -654,7 +655,7 @@ func (t *objectReconcileTask) newProvider(ctx context.Context, consumerObj *unst
 
 	t.log.Info("Determined new provider cluster", "newProvider", t.newProviderName)
 
-	t.newProviderCluster, err = t.opts.GetProviderCluster(ctx, t.newProviderName)
+	t.newProviderCluster, err = t.opts.GetProviderCluster(ctx, multicluster.ClusterName(t.newProviderName))
 	if err != nil {
 		return fmt.Errorf("failed to get new provider cluster %q: %w", t.newProviderName, err)
 	}

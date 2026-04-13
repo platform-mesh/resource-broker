@@ -36,6 +36,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	operatorv1alpha1 "github.com/platform-mesh/resource-broker/api/operator/v1alpha1"
 )
@@ -61,7 +62,7 @@ func SetupBrokerController(mgr mctrl.Manager, opts BrokerOptions) error {
 // BrokerOptions contains data and functions the controller requires to operate.
 type BrokerOptions struct {
 	Scheme     *runtime.Scheme
-	GetCluster func(context.Context, string) (cluster.Cluster, error)
+	GetCluster func(context.Context, multicluster.ClusterName) (cluster.Cluster, error)
 }
 
 // Reconcile reconciles a request for the Broker resource.

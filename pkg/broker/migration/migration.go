@@ -38,6 +38,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/sync"
@@ -52,8 +53,8 @@ const (
 type MigrationOptions struct { //nolint:revive
 	ControllerNamePrefix      string
 	Compute                   ctrlclient.Client
-	GetCoordinationCluster    func(context.Context, string) (ctrlcluster.Cluster, error)
-	GetProviderCluster        func(context.Context, string) (ctrlcluster.Cluster, error)
+	GetCoordinationCluster    func(context.Context, multicluster.ClusterName) (ctrlcluster.Cluster, error)
+	GetProviderCluster        func(context.Context, multicluster.ClusterName) (ctrlcluster.Cluster, error)
 	GetMigrationConfiguration func(metav1.GroupVersionKind, metav1.GroupVersionKind) (brokerv1alpha1.MigrationConfiguration, bool)
 }
 
@@ -238,7 +239,7 @@ func (mr *migrationReconciler) updateStatus(ctx context.Context, nn types.Namesp
 }
 
 func (mr *migrationReconciler) copyRelatedResources(ctx context.Context, from brokerv1alpha1.MigrationRef, prefix string) error {
-	cl, err := mr.opts.GetProviderCluster(ctx, from.ClusterName)
+	cl, err := mr.opts.GetProviderCluster(ctx, multicluster.ClusterName(from.ClusterName))
 	if err != nil {
 		return err
 	}

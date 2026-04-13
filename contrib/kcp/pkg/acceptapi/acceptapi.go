@@ -43,6 +43,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 	"sigs.k8s.io/multicluster-runtime/providers/clusters"
 
@@ -54,8 +55,8 @@ type Options struct {
 	KcpConfig       *rest.Config
 	APIExportName   string
 	Scheme          *runtime.Scheme
-	SetAcceptAPI    func(metav1.GroupVersionResource, string, brokerv1alpha1.AcceptAPI)
-	DeleteAcceptAPI func(metav1.GroupVersionResource, string, string)
+	SetAcceptAPI    func(metav1.GroupVersionResource, multicluster.ClusterName, brokerv1alpha1.AcceptAPI)
+	DeleteAcceptAPI func(metav1.GroupVersionResource, multicluster.ClusterName, string)
 
 	HostOverride string
 	PortOverride string

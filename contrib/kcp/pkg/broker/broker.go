@@ -159,41 +159,41 @@ func New(opts Options) (*Broker, error) { //nolint:gocyclo
 		Scheme:        acceptAPIScheme,
 		HostOverride:  opts.KcpHostOverride,
 		PortOverride:  opts.KcpPortOverride,
-		SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPI brokerv1alpha1.AcceptAPI) {
+		SetAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName multicluster.ClusterName, acceptAPI brokerv1alpha1.AcceptAPI) {
 			// Workaround - the resulting cluster is added to the multi provider
 			// here, which is in turn added to another multi provider with
 			// a prefix. So if the reconciler using that second multi provider
 			// tries to look up the cluster by name that fails as the prefix is
 			// missing.
 			// So we add a prefix when storing the cluster AcceptAPI.
-			clusterName = broker.ProviderPrefix + "#" + clusterName
-			b.opts.Log.Info("SetAcceptAPI", "gvr", gvr, "cluster", clusterName, "acceptAPI", acceptAPI.Name)
+			cn := broker.ProviderPrefix + "#" + string(clusterName)
+			b.opts.Log.Info("SetAcceptAPI", "gvr", gvr, "cluster", cn, "acceptAPI", acceptAPI.Name)
 			b.lock.Lock()
 			defer b.lock.Unlock()
 			if _, ok := b.apiAccepters[gvr]; !ok {
 				b.apiAccepters[gvr] = make(map[string]map[string]brokerv1alpha1.AcceptAPI)
 			}
-			if _, ok := b.apiAccepters[gvr][clusterName]; !ok {
-				b.apiAccepters[gvr][clusterName] = make(map[string]brokerv1alpha1.AcceptAPI)
+			if _, ok := b.apiAccepters[gvr][cn]; !ok {
+				b.apiAccepters[gvr][cn] = make(map[string]brokerv1alpha1.AcceptAPI)
 			}
-			b.apiAccepters[gvr][clusterName][acceptAPI.Name] = acceptAPI
+			b.apiAccepters[gvr][cn][acceptAPI.Name] = acceptAPI
 		},
-		DeleteAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName string, acceptAPIName string) {
+		DeleteAcceptAPI: func(gvr metav1.GroupVersionResource, clusterName multicluster.ClusterName, acceptAPIName string) {
 			// Workaround - the resulting cluster is added to the multi provider
 			// here, which is in turn added to another multi provider with
 			// a prefix. So if the reconciler using that second multi provider
 			// tries to look up the cluster by name that fails as the prefix is
 			// missing.
 			// So we add a prefix when storing the cluster AcceptAPI.
-			clusterName = broker.ProviderPrefix + "#" + clusterName
-			b.opts.Log.Info("DeleteAcceptAPI", "gvr", gvr, "cluster", clusterName, "acceptAPI", acceptAPIName)
+			cn := broker.ProviderPrefix + "#" + string(clusterName)
+			b.opts.Log.Info("DeleteAcceptAPI", "gvr", gvr, "cluster", cn, "acceptAPI", acceptAPIName)
 			b.lock.Lock()
 			defer b.lock.Unlock()
-			clusterAcceptedAPIs, ok := b.apiAccepters[gvr][clusterName]
+			clusterAcceptedAPIs, ok := b.apiAccepters[gvr][cn]
 			if ok {
 				delete(clusterAcceptedAPIs, acceptAPIName)
 				if len(clusterAcceptedAPIs) == 0 {
-					delete(b.apiAccepters[gvr], clusterName)
+					delete(b.apiAccepters[gvr], cn)
 				}
 			}
 		},
@@ -288,8 +288,8 @@ func New(opts Options) (*Broker, error) { //nolint:gocyclo
 		Compute:                computeClient,
 		ControllerNamePrefix:   b.opts.Name,
 		GetCoordinationCluster: migrationMgr.GetCluster,
-		GetProviderCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-			if !strings.HasPrefix(clusterName, broker.ProviderPrefix) {
+		GetProviderCluster: func(ctx context.Context, clusterName multicluster.ClusterName) (cluster.Cluster, error) {
+			if !strings.HasPrefix(string(clusterName), broker.ProviderPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a provider cluster: %w", clusterName, multicluster.ErrClusterNotFound)
 			}
 			return multiProvider.Get(ctx, clusterName)
@@ -342,15 +342,15 @@ func New(opts Options) (*Broker, error) { //nolint:gocyclo
 	genericOpts := genericreconciler.Options{
 		CoordinationClient:   migrationClient,
 		ControllerNamePrefix: b.opts.Name,
-		GetProviderCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-			if !strings.HasPrefix(clusterName, broker.ProviderPrefix) {
+		GetProviderCluster: func(ctx context.Context, clusterName multicluster.ClusterName) (cluster.Cluster, error) {
+			if !strings.HasPrefix(string(clusterName), broker.ProviderPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a provider cluster: %w", clusterName, multicluster.ErrClusterNotFound)
 			}
 			b.opts.Log.Info("GetProviderCluster", "clusterName", clusterName)
 			return multiProvider.Get(ctx, clusterName)
 		},
-		GetConsumerCluster: func(ctx context.Context, clusterName string) (cluster.Cluster, error) {
-			if !strings.HasPrefix(clusterName, broker.ConsumerPrefix) {
+		GetConsumerCluster: func(ctx context.Context, clusterName multicluster.ClusterName) (cluster.Cluster, error) {
+			if !strings.HasPrefix(string(clusterName), broker.ConsumerPrefix) {
 				return nil, fmt.Errorf("cluster %q is not a consumer cluster: %w", clusterName, multicluster.ErrClusterNotFound)
 			}
 			return multiProvider.Get(ctx, clusterName)

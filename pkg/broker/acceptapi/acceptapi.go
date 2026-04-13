@@ -28,6 +28,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 )
@@ -37,9 +38,9 @@ const acceptAPIFinalizer = "broker.platform-mesh.io/acceptapi-finalizer"
 // Options defines the options for the AcceptAPI reconciler.
 type Options struct {
 	ControllerNamePrefix string
-	GetCluster           func(context.Context, string) (cluster.Cluster, error)
-	SetAcceptAPI         func(metav1.GroupVersionResource, string, brokerv1alpha1.AcceptAPI)
-	DeleteAcceptAPI      func(metav1.GroupVersionResource, string, string)
+	GetCluster           func(context.Context, multicluster.ClusterName) (cluster.Cluster, error)
+	SetAcceptAPI         func(metav1.GroupVersionResource, multicluster.ClusterName, brokerv1alpha1.AcceptAPI)
+	DeleteAcceptAPI      func(metav1.GroupVersionResource, multicluster.ClusterName, string)
 }
 
 type reconciler struct {
