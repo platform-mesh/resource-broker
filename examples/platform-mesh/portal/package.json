@@ -21,13 +21,17 @@
     ]
   },
   "private": true,
+  "overrides": {
+    "picomatch": "^4.0.4",
+    "picomatch@^2": "2.3.2"
+  },
   "dependencies": {
-    "@angular/common": "^20.3.0",
-    "@angular/compiler": "^20.3.18",
-    "@angular/core": "^20.3.18",
-    "@angular/forms": "^20.3.0",
-    "@angular/platform-browser": "^20.3.0",
-    "@angular/router": "^20.3.0",
+    "@angular/common": "^20.3.19",
+    "@angular/compiler": "^20.3.19",
+    "@angular/core": "^20.3.19",
+    "@angular/forms": "^20.3.19",
+    "@angular/platform-browser": "^20.3.19",
+    "@angular/router": "^20.3.19",
     "@luigi-project/client": "^2.27.0",
     "@luigi-project/client-support-angular": "^20.0.1",
     "@ui5/webcomponents-ngx": "^0.5.10",
@@ -36,9 +40,9 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular/build": "^20.3.16",
-    "@angular/cli": "^20.3.16",
-    "@angular/compiler-cli": "^20.3.0",
+    "@angular/build": "^20.3.24",
+    "@angular/cli": "^20.3.24",
+    "@angular/compiler-cli": "^20.3.19",
     "@types/jasmine": "~5.1.0",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",

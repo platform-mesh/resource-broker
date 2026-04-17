@@ -6,7 +6,7 @@
  */
 import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import LuigiClient from '@luigi-project/client';
+import * as LuigiClient from '@luigi-project/client';
 import {
   AvatarComponent,
   ButtonComponent,
