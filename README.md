@@ -1,5 +1,7 @@
 # resource-broker
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/platform-mesh/resource-broker/badge)](https://scorecard.dev/viewer/?uri=github.com/platform-mesh/resource-broker)
+
 `resource-broker` is a Kubernetes operator to back generic APIs with multiple providers.
 
 ## Overview
