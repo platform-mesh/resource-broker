@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/google/cel-go v0.27.0
+	github.com/google/cel-go v0.28.0
 	github.com/google/go-cmp v0.7.0
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.3
