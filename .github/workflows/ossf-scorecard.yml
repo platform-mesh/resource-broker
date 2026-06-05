@@ -10,7 +10,7 @@ permissions: read-all
 
 jobs:
     scorecard:
-        uses: platform-mesh/.github/.github/workflows/job-ossf-scorecard.yml@a92948421e9344929f5b9edd6048aa688c1b8ace # main
+        uses: platform-mesh/.github/.github/workflows/job-ossf-scorecard.yml@116dcb7522b4cd1ba7fd2d969e8b6c556d1ec3bd # main
         permissions:
             security-events: write
             id-token: write
