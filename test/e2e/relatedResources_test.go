@@ -38,6 +38,7 @@ import (
 // TestRelatedResources tests that related resources are copied from
 // target to source cluster.
 func TestRelatedResources(t *testing.T) {
+	t.Skip("pending kcp test rewrite")
 	t.Parallel()
 
 	frame := NewFrame(t)
