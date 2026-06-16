@@ -1,5 +1,4 @@
 # Image URL to use all building/pushing image targets
-IMG ?= localhost/resource-broker:dev
 IMG_KCP ?= localhost/resource-broker-kcp:dev
 IMG_OPERATOR ?= localhost/resource-broker-operator:dev
 IMG_PORTAL ?= localhost/resource-broker-portal:dev
@@ -129,17 +128,9 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 
 ##@ Build
 
-.PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager ./cmd/
-
 .PHONY: build-operator
 build-operator: manifests generate fmt vet ## Build operator binary.
 	go build -o bin/operator ./cmd/operator
-
-.PHONY: run
-run: manifests generate fmt vet ## Run manager from your host.
-	go run ./cmd/ -zap-devel=true -zap-log-level=debug
 
 .PHONY: run-operator
 run-operator: manifests generate fmt vet ## Run operator from your host.
@@ -148,10 +139,6 @@ run-operator: manifests generate fmt vet ## Run operator from your host.
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
-
 .PHONY: docker-build-kcp
 docker-build-kcp: ## Build docker image with the operator for kcp.
 	$(CONTAINER_TOOL) build -t ${IMG_KCP} \
@@ -168,10 +155,6 @@ docker-build-portal: ## Build docker image with the portal.
 	$(CONTAINER_TOOL) build -t ${IMG_PORTAL} -f examples/platform-mesh/portal/Dockerfile examples/platform-mesh/portal
 
 KIND_CLUSTER ?= kind
-
-.PHONY: kind-load
-kind-load: ## Load docker image with the broker into kind cluster. Set cluster name with KIND_CLUSTER.
-	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG}"
 
 .PHONY: kind-load-kcp
 kind-load-kcp: ## Load docker image with the operator for kcp into kind cluster. Set cluster name with KIND_CLUSTER.
@@ -229,12 +212,6 @@ uninstall-example: manifests kustomize ## Uninstall example CRDs.
 uninstall-operator: manifests kustomize ## Uninstall operator CRDs.
 	$(KUSTOMIZE) build config/operator/crd | $(KUBECTL) delete --ignore-not-found=true -f -
 
-.PHONY: deploy
-deploy: manifests kustomize ## Deploy broker.
-	cd config/broker/default && $(KUSTOMIZE) edit set image broker=${IMG}
-	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
-	$(KUSTOMIZE) build config/broker/default | $(KUBECTL) apply -f -
-
 .PHONY: deploy-example
 deploy-example: manifests kustomize ## Deploy example.
 	$(KUSTOMIZE) build config/example/default | $(KUBECTL) apply -f -
@@ -251,10 +228,6 @@ deploy-pm-portal: kustomize ## Deploy platform-mesh portal.
 	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
 	$(KUSTOMIZE) build examples/platform-mesh/portal/deploy | $(KUBECTL) apply -f -
 	$(KUBECTL) apply -f examples/platform-mesh/portal/deploy/httproute.yaml
-
-.PHONY: undeploy
-undeploy: kustomize ## Undeploy broker.
-	$(KUSTOMIZE) build config/broker/default | $(KUBECTL) delete --ignore-not-found=true -f -
 
 .PHONY: undeploy-example
 undeploy-example: kustomize ## Undeploy example.
