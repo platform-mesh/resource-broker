@@ -24,6 +24,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const (
+	// ConsumerPrefix is the prefix expected for consumer clusters.
+	ConsumerPrefix = "consumer"
+	// ProviderPrefix is the prefix expected for provider clusters.
+	ProviderPrefix = "provider"
+	// CoordinationPrefix is the prefix expected for coordination
+	// clusters.
+	CoordinationPrefix = "coordination"
+)
+
 // ParseKinds is a convenience wrapper around ParseKind.
 func ParseKinds(kinds []string) []schema.GroupVersionKind {
 	gvks := make([]schema.GroupVersionKind, len(kinds))
