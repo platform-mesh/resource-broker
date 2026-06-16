@@ -1,6 +1,0 @@
-resources:
-  - ../../../config/example/crd/example.platform-mesh.io_certificates.yaml
-  # These CRDs are not needed but mcmanager requires all CRDs at the moment (see #132)
-  - ../../../config/broker/crd/broker.platform-mesh.io_acceptapis.yaml
-  - ../../../config/broker/crd/broker.platform-mesh.io_migrationconfigurations.yaml
-  - ../../../config/broker/crd/broker.platform-mesh.io_migrations.yaml
