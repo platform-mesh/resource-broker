@@ -5,7 +5,7 @@ metadata:
   namespace: resource-broker-system
 spec:
   image:
-    repository: resource-broker-kcp
+    repository: localhost/resource-broker-kcp
     tag: dev
   extraArgs:
     - "-kubeconfig=/kubeconfig/kubeconfig"

@@ -1,8 +1,8 @@
 # Image URL to use all building/pushing image targets
-IMG ?= resource-broker:dev
-IMG_KCP ?= resource-broker-kcp:dev
-IMG_OPERATOR ?= resource-broker-operator:dev
-IMG_PORTAL ?= resource-broker-portal:dev
+IMG ?= localhost/resource-broker:dev
+IMG_KCP ?= localhost/resource-broker-kcp:dev
+IMG_OPERATOR ?= localhost/resource-broker-operator:dev
+IMG_PORTAL ?= localhost/resource-broker-portal:dev
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))

@@ -9,5 +9,5 @@ resources:
 
 images:
 - name: operator
-  newName: resource-broker-operator
-  newTag: platform-mesh
+  newName: localhost/resource-broker-operator
+  newTag: dev
