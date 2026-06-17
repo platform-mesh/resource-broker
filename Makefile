@@ -144,7 +144,7 @@ run: manifests generate fmt vet ## Run broker from your host.
 run-operator: manifests generate fmt vet ## Run operator from your host.
 	go run ./cmd/operator -zap-devel=true -zap-log-level=debug
 
-# If you wish to build the manager image targeting other platforms you can use the --platform flag.
+# If you wish to build the broker image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build

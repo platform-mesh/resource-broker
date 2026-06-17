@@ -43,7 +43,7 @@ examples/         Runnable walkthroughs (certs, kcp-certs, platform-mesh)
 
 ## Architecture
 
-Three cluster roles: coordination, consumer, provider. Two separate binaries: **operator** (single-cluster, manages Broker CRD, deploys broker) and **broker manager** (multi-cluster, runs reconcilers).
+Three cluster roles: coordination, consumer, provider. Two separate binaries: **operator** (single-cluster, manages Broker CRD, deploys broker) and **broker** (multi-cluster, runs reconcilers).
 
 ### Reconciliation Flow
 
