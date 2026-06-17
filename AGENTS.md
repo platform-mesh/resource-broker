@@ -1,6 +1,6 @@
 # resource-broker
 
-Kubernetes operator for multi-cluster resource brokering. Kubebuilder v4, multigroup layout. Built on `sigs.k8s.io/multicluster-runtime`.
+Kubernetes operator for brokering resources in kcp. Built on `sigs.k8s.io/multicluster-runtime`.
 
 Read the org-wide [AGENTS.md](https://github.com/platform-mesh/.github/blob/main/AGENTS.md) for general conventions. Read [CONTRIBUTING.md](CONTRIBUTING.md) for contribution workflow.
 
