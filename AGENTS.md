@@ -24,7 +24,7 @@ Read the org-wide [AGENTS.md](https://github.com/platform-mesh/.github/blob/main
 
 ```
 api/              CRD types, grouped by domain
-  broker/         AcceptAPI, Migration, MigrationConfiguration
+  broker/         AcceptAPI, Migration, MigrationConfiguration, StagingWorkspace
   generic/        Cross-cloud APIs (databases, networking, storage, compute, etc.)
   example/        Example CRDs (Certificate, VM)
   operator/       Broker operator CRD
@@ -32,7 +32,7 @@ cmd/              Entrypoints
   broker/         resource-broker
   operator/       resource-broker-operator
 pkg/              Core logic
-  broker/         Reconcilers (acceptapi, generic, migration)
+  broker/         Reconcilers (acceptapi, generic, migration, stagingworkspace)
   sync/           Resource copy and condition tracking
   conditions/     Status condition utilities
   kubernetes/     Annotation and map helpers
