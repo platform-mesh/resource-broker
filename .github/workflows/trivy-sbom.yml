@@ -1,0 +1,17 @@
+name: Trivy SBOM Scan
+
+on:
+  schedule:
+    # Run every day at 04:30 UTC
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  scan-sbom:
+    uses: platform-mesh/.github/.github/workflows/job-trivy-sbom.yml@d277a0b0bfc46e23fe62e87460c62525e57b1167 # main
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
