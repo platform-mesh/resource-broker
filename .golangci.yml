@@ -68,6 +68,9 @@ linters:
         linters:
           - goconst
         text: "make it a constant" # test strings are fine, esp. when they are from different tests they shouldn't be shared.
+      - path: _test\.go$
+        linters:
+          - goconst
       - path: test/utils/
         linters:
           - revive
