@@ -16,6 +16,6 @@ limitations under the License.
 */
 
 // Package e2e holds the broker end-to-end tests. The current files are
-// gated behind the kube_legacy build tag pending a rewrite onto a kcp
-// test setup.
+// preserved as a reference pending a rewrite onto a kcp test setup; every
+// test is gated and t.Skip()s until that rewrite lands.
 package e2e
