@@ -31,7 +31,7 @@ import (
 
 	mctrl "sigs.k8s.io/multicluster-runtime"
 
-	kcpbroker "github.com/platform-mesh/resource-broker/contrib/kcp/pkg/broker"
+	"github.com/platform-mesh/resource-broker/pkg/broker"
 	"github.com/platform-mesh/resource-broker/pkg/version"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -133,7 +133,7 @@ func main() {
 		}
 	}
 
-	brk, err := kcpbroker.New(kcpbroker.Options{
+	brk, err := broker.New(broker.Options{
 		Name:       "kcp-main",
 		Log:        setupLog.WithName("broker"),
 		WatchKinds: slices.Collect(maps.Keys(watchKinds)),
