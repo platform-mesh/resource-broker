@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
-	"github.com/platform-mesh/resource-broker/cmd/manager"
+	"github.com/platform-mesh/resource-broker/test/e2e/internal/manager"
 	"github.com/platform-mesh/resource-broker/pkg/broker/generic"
 )
 

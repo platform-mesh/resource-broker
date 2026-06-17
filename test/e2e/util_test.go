@@ -48,7 +48,7 @@ import (
 
 	brokerv1alpha1 "github.com/platform-mesh/resource-broker/api/broker/v1alpha1"
 	examplev1alpha1 "github.com/platform-mesh/resource-broker/api/example/v1alpha1"
-	"github.com/platform-mesh/resource-broker/cmd/manager"
+	"github.com/platform-mesh/resource-broker/test/e2e/internal/manager"
 	"github.com/platform-mesh/resource-broker/test/utils"
 )
 
