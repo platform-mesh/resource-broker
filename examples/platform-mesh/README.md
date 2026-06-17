@@ -30,16 +30,16 @@ get one is to deploy the [local setup](https://github.com/platform-mesh/helm-cha
 
 ### Build and load images
 
-Build the resource-broker-operator and resource-broker-kcp images and
+Build the resource-broker-operator and resource-broker images and
 load them into the kind cluster:
 
 ```bash ci
-export IMG_KCP=resource-broker-kcp:platform-mesh
+export IMG=resource-broker:platform-mesh
 export IMG_OPERATOR=resource-broker-operator:platform-mesh
 export IMG_PORTAL=resource-broker-portal:platform-mesh
 
-make docker-build-kcp docker-build-operator docker-build-portal
-make kind-load-kcp kind-load-operator kind-load-portal KIND_CLUSTER=platform-mesh
+make docker-build docker-build-operator docker-build-portal
+make kind-load kind-load-operator kind-load-portal KIND_CLUSTER=platform-mesh
 ```
 
 ### Deploy operator

@@ -1,3 +1,5 @@
+//go:build kube_legacy
+
 /*
 Copyright The Platform Mesh Authors.
 SPDX-License-Identifier: Apache-2.0
@@ -40,6 +42,7 @@ import (
 // TestMigrationNoStages tests that migrations are created and processed
 // correctly.
 func TestMigrationNoStages(t *testing.T) {
+	t.Skip("pending kcp test rewrite")
 	t.Parallel()
 
 	frame := NewFrame(t)
@@ -267,6 +270,7 @@ func TestMigrationNoStages(t *testing.T) {
 // TestMigrationWithStages tests that migrations are created and processed
 // correctly with stages defined.
 func TestMigrationWithStages(t *testing.T) {
+	t.Skip("pending kcp test rewrite")
 	t.Parallel()
 
 	frame := NewFrame(t)

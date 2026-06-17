@@ -15,5 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package acceptapi provides a reconciler for AcceptAPI resources.
-package acceptapi
+// Package e2e holds the broker end-to-end tests. The current files are
+// gated behind the kube_legacy build tag pending a rewrite onto a kcp
+// test setup.
+package e2e

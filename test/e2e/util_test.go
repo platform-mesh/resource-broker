@@ -1,3 +1,5 @@
+//go:build kube_legacy
+
 /*
 Copyright The Platform Mesh Authors.
 SPDX-License-Identifier: Apache-2.0

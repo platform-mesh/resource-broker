@@ -1,8 +1,7 @@
 # Image URL to use all building/pushing image targets
-IMG ?= resource-broker:dev
-IMG_KCP ?= resource-broker-kcp:dev
-IMG_OPERATOR ?= resource-broker-operator:dev
-IMG_PORTAL ?= resource-broker-portal:dev
+IMG ?= localhost/resource-broker:dev
+IMG_OPERATOR ?= localhost/resource-broker-operator:dev
+IMG_PORTAL ?= localhost/resource-broker-portal:dev
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -130,16 +129,16 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 ##@ Build
 
 .PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager ./cmd/
+build: manifests generate fmt vet ## Build broker binary.
+	go build -o bin/broker ./cmd/broker
 
 .PHONY: build-operator
 build-operator: manifests generate fmt vet ## Build operator binary.
 	go build -o bin/operator ./cmd/operator
 
 .PHONY: run
-run: manifests generate fmt vet ## Run manager from your host.
-	go run ./cmd/ -zap-devel=true -zap-log-level=debug
+run: manifests generate fmt vet ## Run broker from your host.
+	go run ./cmd/broker -zap-devel=true -zap-log-level=debug
 
 .PHONY: run-operator
 run-operator: manifests generate fmt vet ## Run operator from your host.
@@ -149,15 +148,11 @@ run-operator: manifests generate fmt vet ## Run operator from your host.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
-
-.PHONY: docker-build-kcp
-docker-build-kcp: ## Build docker image with the operator for kcp.
-	$(CONTAINER_TOOL) build -t ${IMG_KCP} \
+docker-build: ## Build docker image with the broker.
+	$(CONTAINER_TOOL) build -t ${IMG} \
 		--build-arg GIT_COMMIT=$$(git rev-parse --short HEAD) \
 		--build-arg BUILD_TIME=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-		-f contrib/kcp/Dockerfile .
+		-f cmd/broker/Dockerfile .
 
 .PHONY: docker-build-operator
 docker-build-operator: ## Build docker image with the operator.
@@ -170,12 +165,8 @@ docker-build-portal: ## Build docker image with the portal.
 KIND_CLUSTER ?= kind
 
 .PHONY: kind-load
-kind-load: ## Load docker image with the broker into kind cluster. Set cluster name with KIND_CLUSTER.
+kind-load: ## Load broker image into kind cluster. Set cluster name with KIND_CLUSTER.
 	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG}"
-
-.PHONY: kind-load-kcp
-kind-load-kcp: ## Load docker image with the operator for kcp into kind cluster. Set cluster name with KIND_CLUSTER.
-	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_KCP}"
 
 .PHONY: kind-load-operator
 kind-load-operator: ## Load docker image with the operator into kind cluster. Set cluster name with KIND_CLUSTER.
@@ -229,12 +220,6 @@ uninstall-example: manifests kustomize ## Uninstall example CRDs.
 uninstall-operator: manifests kustomize ## Uninstall operator CRDs.
 	$(KUSTOMIZE) build config/operator/crd | $(KUBECTL) delete --ignore-not-found=true -f -
 
-.PHONY: deploy
-deploy: manifests kustomize ## Deploy broker.
-	cd config/broker/default && $(KUSTOMIZE) edit set image broker=${IMG}
-	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
-	$(KUSTOMIZE) build config/broker/default | $(KUBECTL) apply -f -
-
 .PHONY: deploy-example
 deploy-example: manifests kustomize ## Deploy example.
 	$(KUSTOMIZE) build config/example/default | $(KUBECTL) apply -f -
@@ -251,10 +236,6 @@ deploy-pm-portal: kustomize ## Deploy platform-mesh portal.
 	$(KUBECTL) create namespace --dry-run=client resource-broker-system -o yaml | $(KUBECTL) apply -f -
 	$(KUSTOMIZE) build examples/platform-mesh/portal/deploy | $(KUBECTL) apply -f -
 	$(KUBECTL) apply -f examples/platform-mesh/portal/deploy/httproute.yaml
-
-.PHONY: undeploy
-undeploy: kustomize ## Undeploy broker.
-	$(KUSTOMIZE) build config/broker/default | $(KUBECTL) delete --ignore-not-found=true -f -
 
 .PHONY: undeploy-example
 undeploy-example: kustomize ## Undeploy example.
@@ -290,7 +271,7 @@ CONTROLLER_TOOLS_VERSION ?= v0.17.2
 ENVTEST_VERSION ?= $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
 #ENVTEST_K8S_VERSION is the version of Kubernetes to use for setting up ENVTEST binaries (i.e. 1.31)
 ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
-GOLANGCI_LINT_VERSION ?= v2.4.0
+GOLANGCI_LINT_VERSION ?= v2.12.2
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.

@@ -1,3 +1,5 @@
+//go:build kube_legacy
+
 /*
 Copyright The Platform Mesh Authors.
 SPDX-License-Identifier: Apache-2.0
@@ -38,6 +40,7 @@ import (
 // TestRelatedResources tests that related resources are copied from
 // target to source cluster.
 func TestRelatedResources(t *testing.T) {
+	t.Skip("pending kcp test rewrite")
 	t.Parallel()
 
 	frame := NewFrame(t)

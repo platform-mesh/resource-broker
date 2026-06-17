@@ -36,6 +36,11 @@ import (
 
 // makeCond constructs a metav1.Condition. The status parameter is a boolean
 // where true maps to metav1.ConditionTrue and false to metav1.ConditionFalse.
+const (
+	metadataKey = "metadata"
+	statusKey   = "status"
+)
+
 func makeCond(t ConditionType, ok bool, reason, msg string) metav1.Condition {
 	s := metav1.ConditionFalse
 	if ok {
@@ -54,8 +59,8 @@ func makeCond(t ConditionType, ok bool, reason, msg string) metav1.Condition {
 // cluster.
 func StripClusterMetadata(obj *unstructured.Unstructured) *unstructured.Unstructured {
 	c := obj.DeepCopy()
-	delete(c.Object, "status")
-	if m, ok := c.Object["metadata"].(map[string]any); ok {
+	delete(c.Object, statusKey)
+	if m, ok := c.Object[metadataKey].(map[string]any); ok {
 		delete(m, "resourceVersion")
 		delete(m, "uid")
 		delete(m, "creationTimestamp")
@@ -141,7 +146,7 @@ func CopyResource(
 			}
 			toUpdate := existing.DeepCopy()
 			for k, v := range sourceObj.Object {
-				if k == "metadata" || k == "status" {
+				if k == metadataKey || k == statusKey {
 					continue
 				}
 				toUpdate.Object[k] = v
@@ -158,21 +163,21 @@ func CopyResource(
 	}
 
 	log.Info("Checking status sync",
-		"targetHasStatus", existing.Object["status"] != nil,
-		"sourceHasStatus", sourceObj.Object["status"] != nil)
+		"targetHasStatus", existing.Object[statusKey] != nil,
+		"sourceHasStatus", sourceObj.Object[statusKey] != nil)
 
-	if status, ok := existing.Object["status"]; ok {
+	if status, ok := existing.Object[statusKey]; ok {
 		// Apply status transformation if provided
 		if opt.StatusTransformer != nil {
 			status = opt.StatusTransformer(status)
 		}
-		if !cmp.Equal(sourceObj.Object["status"], status, cmpopts.EquateEmpty()) {
+		if !cmp.Equal(sourceObj.Object[statusKey], status, cmpopts.EquateEmpty()) {
 			log.Info("Syncing status from target to source")
 			// Re-fetch source to get latest resourceVersion before status update
 			if err := source.Get(ctx, sourceName, sourceObj); err != nil {
 				return makeCond(ConditionStatusSynced, false, "GetSourceFailed", err.Error()), err
 			}
-			sourceObj.Object["status"] = status
+			sourceObj.Object[statusKey] = status
 			if err := source.Status().Update(ctx, sourceObj); err != nil {
 				log.Error(err, "Failed to update status on source")
 				return makeCond(ConditionStatusSynced, false, "StatusUpdateFailed", err.Error()), err

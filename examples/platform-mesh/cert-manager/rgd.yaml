@@ -1,11 +1,11 @@
 apiVersion: kro.run/v1alpha1
 kind: ResourceGraphDefinition
 metadata:
-  name: certificates.example.platform-mesh.io
+  name: certificates.certmanager.ca
 spec:
 
   schema:
-    group: example.platform-mesh.io
+    group: certmanager.ca
     apiVersion: v1alpha1
     kind: Certificate
     spec:
@@ -20,7 +20,7 @@ spec:
             version: ${secret.?apiVersion}
             kind: ${secret.?kind}
           name: ${secret.metadata.name}
-          namespace: ${secret.metadata.namespace}
+          namespace: ${certificate.metadata.?annotations["remote-object-namespace"]}
 
   resources:
 
@@ -29,16 +29,19 @@ spec:
         apiVersion: cert-manager.io/v1
         kind: Certificate
         metadata:
+          annotations:
+            remote-object-name: ${schema.metadata.?annotations["syncagent.kcp.io/remote-object-name"]}
+            remote-object-namespace: ${schema.metadata.?annotations["syncagent.kcp.io/remote-object-namespace"]}
           name: ${schema.metadata.name}
           namespace: ${schema.metadata.namespace}
         spec:
           commonName: ${schema.spec.fqdn}
-          secretName: ${schema.metadata.name}
+          secretName: ${schema.metadata.?annotations["syncagent.kcp.io/remote-object-name"]}
           privateKey:
             algorithm: ECDSA
             size: 256
           issuerRef:
-            name: selfsigned-cluster-issuer
+            name: selfsigned-cert-manager-issuer
             kind: ClusterIssuer
             group: cert-manager.io
 
@@ -47,5 +50,7 @@ spec:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: ${certificate.metadata.name}
+          name: ${certificate.metadata.?annotations["remote-object-name"]}
           namespace: ${certificate.metadata.namespace}
+      readyWhen:
+        - ${secret.metadata.name != ""}

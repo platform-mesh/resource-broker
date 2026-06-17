@@ -423,7 +423,7 @@ func (mr *migrationReconciler) checkSuccessConditions(ctx context.Context, stage
 }
 
 func (mr *migrationReconciler) prepCEL(stageResources map[string]*unstructured.Unstructured) (*cel.Env, map[string]any, error) {
-	envArgs := []cel.EnvOption{}
+	envArgs := make([]cel.EnvOption, 0, len(stageResources))
 	evalArgs := make(map[string]any)
 	for name, obj := range stageResources {
 		envArgs = append(envArgs, cel.Variable(name, cel.DynType))

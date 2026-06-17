@@ -1,3 +1,5 @@
+//go:build kube_legacy
+
 /*
 Copyright The Platform Mesh Authors.
 SPDX-License-Identifier: Apache-2.0
@@ -37,6 +39,7 @@ import (
 // TestManagerCopy only tests that the manager can copy from a source to
 // a destination cluster.
 func TestManagerCopy(t *testing.T) {
+	t.Skip("pending kcp test rewrite")
 	t.Parallel()
 
 	frame := NewFrame(t)

@@ -87,8 +87,10 @@ func (acceptAPI *AcceptAPI) AppliesTo(gvr metav1.GroupVersionResource, obj *unst
 	reasons := []AcceptAPIDenyReason{}
 
 	for _, filter := range acceptAPI.Spec.Filters {
-		fields := []string{"spec"}
-		fields = append(fields, strings.Split(filter.Key, ".")...)
+		keyParts := strings.Split(filter.Key, ".")
+		fields := make([]string, 0, 1+len(keyParts))
+		fields = append(fields, "spec")
+		fields = append(fields, keyParts...)
 
 		valRaw, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
 		if err != nil || !found {

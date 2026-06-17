@@ -29,7 +29,7 @@ api/              CRD types, grouped by domain
   example/        Example CRDs (Certificate, VM)
   operator/       Broker operator CRD
 cmd/              Entrypoints
-  main.go         resource-broker
+  broker/         resource-broker
   operator/       resource-broker-operator
 pkg/              Core logic
   broker/         Reconcilers (acceptapi, generic, migration)
@@ -39,7 +39,6 @@ pkg/              Core logic
 config/           Kustomize manifests (CRDs, RBAC, deployment)
 test/             E2e tests and test utilities
 examples/         Runnable walkthroughs (certs, kcp-certs, platform-mesh)
-contrib/kcp/      kcp-specific Dockerfile and config
 ```
 
 ## Architecture
