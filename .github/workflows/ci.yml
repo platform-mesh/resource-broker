@@ -61,8 +61,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: resource-broker-kcp
-            dockerfile: contrib/kcp/Dockerfile
+          - image: resource-broker
+            dockerfile: cmd/broker/Dockerfile
           - image: resource-broker-operator
             dockerfile: cmd/operator/Dockerfile
     steps:
@@ -144,8 +144,8 @@ jobs:
       # use the gha cache to "transfer" the images built in the previous job to this job
       - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
-          file: contrib/kcp/Dockerfile
-          tags: localhost/resource-broker-kcp:dev
+          file: cmd/broker/Dockerfile
+          tags: localhost/resource-broker:dev
           cache-from: type=gha
           push: false
           load: true

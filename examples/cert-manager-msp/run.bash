@@ -150,10 +150,10 @@ _start_broker() {
     log "Starting broker"
 
     if [[ -z "$CI" ]]; then
-        make docker-build-kcp || die "Failed to build resource-broker-kcp docker image"
+        make docker-build || die "Failed to build resource-broker docker image"
     fi
-    make kind-load-kcp KIND_CLUSTER=broker-platform \
-        || die "Failed to load resource-broker-kcp image into kind cluster"
+    make kind-load KIND_CLUSTER=broker-platform \
+        || die "Failed to load resource-broker image into kind cluster"
 
     KUBECONFIG="$kind_platform" \
         kubectl get secret operator-kubeconfig -o jsonpath='{.data.kubeconfig}' \

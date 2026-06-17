@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG_KCP ?= localhost/resource-broker-kcp:dev
+IMG ?= localhost/resource-broker:dev
 IMG_OPERATOR ?= localhost/resource-broker-operator:dev
 IMG_PORTAL ?= localhost/resource-broker-portal:dev
 
@@ -128,9 +128,17 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 
 ##@ Build
 
+.PHONY: build
+build: manifests generate fmt vet ## Build broker binary.
+	go build -o bin/broker ./cmd/broker
+
 .PHONY: build-operator
 build-operator: manifests generate fmt vet ## Build operator binary.
 	go build -o bin/operator ./cmd/operator
+
+.PHONY: run
+run: manifests generate fmt vet ## Run broker from your host.
+	go run ./cmd/broker -zap-devel=true -zap-log-level=debug
 
 .PHONY: run-operator
 run-operator: manifests generate fmt vet ## Run operator from your host.
@@ -139,12 +147,12 @@ run-operator: manifests generate fmt vet ## Run operator from your host.
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: docker-build-kcp
-docker-build-kcp: ## Build docker image with the operator for kcp.
-	$(CONTAINER_TOOL) build -t ${IMG_KCP} \
+.PHONY: docker-build
+docker-build: ## Build docker image with the broker.
+	$(CONTAINER_TOOL) build -t ${IMG} \
 		--build-arg GIT_COMMIT=$$(git rev-parse --short HEAD) \
 		--build-arg BUILD_TIME=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-		-f contrib/kcp/Dockerfile .
+		-f cmd/broker/Dockerfile .
 
 .PHONY: docker-build-operator
 docker-build-operator: ## Build docker image with the operator.
@@ -156,9 +164,9 @@ docker-build-portal: ## Build docker image with the portal.
 
 KIND_CLUSTER ?= kind
 
-.PHONY: kind-load-kcp
-kind-load-kcp: ## Load docker image with the operator for kcp into kind cluster. Set cluster name with KIND_CLUSTER.
-	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG_KCP}"
+.PHONY: kind-load
+kind-load: ## Load broker image into kind cluster. Set cluster name with KIND_CLUSTER.
+	kind load docker-image --name "$(KIND_CLUSTER)" "${IMG}"
 
 .PHONY: kind-load-operator
 kind-load-operator: ## Load docker image with the operator into kind cluster. Set cluster name with KIND_CLUSTER.
