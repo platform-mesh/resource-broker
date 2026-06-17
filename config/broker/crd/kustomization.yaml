@@ -4,3 +4,4 @@ resources:
 - broker.platform-mesh.io_acceptapis.yaml
 - broker.platform-mesh.io_migrationconfigurations.yaml
 - broker.platform-mesh.io_migrations.yaml
+- broker.platform-mesh.io_stagingworkspaces.yaml
