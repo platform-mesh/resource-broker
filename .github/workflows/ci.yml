@@ -88,6 +88,11 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - id: build-info
+        run: |
+          echo "git_commit=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           file: ${{ matrix.dockerfile }}
@@ -95,6 +100,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GIT_COMMIT=${{ steps.build-info.outputs.git_commit }}
+            BUILD_TIME=${{ steps.build-info.outputs.build_time }}
           outputs: |
             type=image,push=${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
@@ -142,11 +150,19 @@ jobs:
           install_only: true
 
       # use the gha cache to "transfer" the images built in the previous job to this job
+      - id: build-info
+        run: |
+          echo "git_commit=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           file: cmd/broker/Dockerfile
           tags: localhost/resource-broker:dev
           cache-from: type=gha
+          build-args: |
+            GIT_COMMIT=${{ steps.build-info.outputs.git_commit }}
+            BUILD_TIME=${{ steps.build-info.outputs.build_time }}
           push: false
           load: true
       - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
@@ -154,6 +170,9 @@ jobs:
           file: cmd/operator/Dockerfile
           tags: localhost/resource-broker-operator:dev
           cache-from: type=gha
+          build-args: |
+            GIT_COMMIT=${{ steps.build-info.outputs.git_commit }}
+            BUILD_TIME=${{ steps.build-info.outputs.build_time }}
           push: false
           load: true
 
