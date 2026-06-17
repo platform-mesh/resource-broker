@@ -52,6 +52,10 @@ linters:
   exclusions:
     generated: lax
     rules:
+      - path: api/.*/groupversion_info\.go
+        linters:
+          - staticcheck
+        text: "SA1019: scheme.Builder is deprecated" # kubebuilder-scaffolded; will be replaced when the upstream template is updated
       - path: test/
         linters:
           - gosec
