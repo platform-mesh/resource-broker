@@ -21,7 +21,7 @@ Contributors will be asked to accept a DCO before they submit the first pull req
 2. Fork the repository and create a branch.
 3. Make your changes and verify them locally:
    - Run `make check` to run code generation, linting, and all tests.
-   - See [DEVELOPEPMENT.md](DEVELOPEPMENT.md) for all available make targets.
+   - See [DEVELOPMENT.md](DEVELOPMENT.md) for all available make targets.
 4. Commit using [Conventional Commits](https://www.conventionalcommits.org/) format (e.g. `feat:`, `fix:`, `chore:`).
 5. Create a pull request.
 6. Follow the link posted by the CLA assistant to your pull request and accept it, as described above.
@@ -40,7 +40,7 @@ Key commands:
 - `make lint-fix` — lint and auto-fix
 - `make run` — run broker locally with debug logging
 
-See [DEVELOPEPMENT.md](DEVELOPEPMENT.md) for the full list.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the full list.
 
 ## License
 
