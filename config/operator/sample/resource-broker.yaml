@@ -5,4 +5,4 @@ metadata:
   namespace: resource-broker-system
 spec:
   extraArgs:
-    - --with-kind=Certificates.v1alpha1.example.platform-mesh.io
+    - -watch-kind=Certificate.v1alpha1.example.platform-mesh.io
