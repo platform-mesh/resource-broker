@@ -36,6 +36,7 @@ import (
 
 	operatorv1alpha1 "github.com/platform-mesh/resource-broker/api/operator/v1alpha1"
 	"github.com/platform-mesh/resource-broker/pkg/operator"
+	"github.com/platform-mesh/resource-broker/pkg/version"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -80,6 +81,8 @@ func main() {
 	flag.Parse()
 
 	mctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("Starting resource-broker-operator", "version", version.Info())
 
 	disableHTTP2 := func(c *tls.Config) {
 		setupLog.Info("disabling http/2")

@@ -156,7 +156,10 @@ docker-build: ## Build docker image with the broker.
 
 .PHONY: docker-build-operator
 docker-build-operator: ## Build docker image with the operator.
-	$(CONTAINER_TOOL) build -t ${IMG_OPERATOR} -f cmd/operator/Dockerfile .
+	$(CONTAINER_TOOL) build -t ${IMG_OPERATOR} \
+		--build-arg GIT_COMMIT=$$(git rev-parse --short HEAD) \
+		--build-arg BUILD_TIME=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+		-f cmd/operator/Dockerfile .
 
 .PHONY: docker-build-portal
 docker-build-portal: ## Build docker image with the portal.

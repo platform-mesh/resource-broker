@@ -7,13 +7,17 @@ RUN --mount=type=cache,target=/go/pkg/mod,id=gomod-operator \
     go mod download && go mod verify
 
 COPY . ./
+
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIME=unknown
+
 RUN --mount=type=cache,target=/go/pkg/mod,id=gomod-operator \
     --mount=type=cache,target=/root/.cache/go-build,id=gobuild-operator \
     CGO_ENABLED=0 \
     GOCACHE=/root/.cache/go-build \
     GOOS=$TARGETOS \
     GOARCH=$TARGETARCH \
-    go build -o ./bin/operator ./cmd/operator
+    go build -ldflags "-X github.com/platform-mesh/resource-broker/pkg/version.GitCommit=${GIT_COMMIT} -X github.com/platform-mesh/resource-broker/pkg/version.BuildTime=${BUILD_TIME}" -o ./bin/operator ./cmd/operator
 
 FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240
 WORKDIR /
