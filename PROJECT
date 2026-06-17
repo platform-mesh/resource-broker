@@ -45,6 +45,13 @@ resources:
   version: v1alpha1
 - api:
     crdVersion: v1
+  domain: platform-mesh.io
+  group: broker
+  kind: StagingWorkspace
+  path: github.com/platform-mesh/resource-broker/api/broker/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
     namespaced: true
   domain: platform-mesh.io
   group: example
