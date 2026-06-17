@@ -350,7 +350,7 @@ func New(opts Options) (*Broker, error) { //nolint:gocyclo
 
 	generalMgr, err := mcmanager(opts.LocalConfig, generalScheme, b.multiProvider)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create general broker manager: %w", err)
+		return nil, fmt.Errorf("unable to create general manager: %w", err)
 	}
 	b.managers["general"] = generalMgr
 
