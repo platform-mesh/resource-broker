@@ -10,7 +10,7 @@ permissions: read-all
 
 jobs:
   scan-sbom:
-    uses: platform-mesh/.github/.github/workflows/job-trivy-sbom.yml@068efd5c6c7a6d0c4b28f5887de7ca156cb5f7b8 # main
+    uses: platform-mesh/.github/.github/workflows/job-trivy-sbom.yml@75f52df7bff585bcb2d794a7bbeec132354933fb # main
     permissions:
       contents: read
       packages: read
